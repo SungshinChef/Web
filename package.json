@@ -1,0 +1,15 @@
+{
+  "name": "capston",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@react-native-community/cli": "^18.0.0",
+    "react-native": "^0.78.2"
+  }
+}
