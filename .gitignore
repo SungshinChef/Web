@@ -1,0 +1,38 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.expo/
+.expo-shared/
+web-build/
+dist/
+.env
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+*.sqlite3
+
+# VSCode
+.vscode/
+
+# iOS
+ios/Pods/
+ios/Podfile.lock
+ios/build/
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+
+# Expo
+*.expo/
