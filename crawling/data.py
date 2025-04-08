@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # FastAPI 앱 인스턴스 생성
 app = FastAPI()
-app.add_middleware(
+app.add_middleware( 
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,

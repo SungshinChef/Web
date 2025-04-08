@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 from dotenv import load_dotenv
 import time
-
+ 
 # 환경 변수 로드
 load_dotenv()
 
