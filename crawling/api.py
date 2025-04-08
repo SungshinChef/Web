@@ -23,7 +23,7 @@ def safe_get(url, delay=5):
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
-            return response
+            return response 
         except (requests.exceptions.RequestException, requests.exceptions.ConnectionError) as e:
             print(f"⚠️ 요청 실패: {e}\n⏳ {delay}초 후 재시도 중...")
             time.sleep(delay)

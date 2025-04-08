@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import time
  
 # 환경 변수 로드
-load_dotenv()
+load_dotenv() 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
