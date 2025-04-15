@@ -1,4 +1,4 @@
-# 🍳 Taste Trip
+# 🍳 Taste Trip 
 
 A personalized recipe recommendation app that helps users discover recipes based on their dietary preferences and restrictions.
 
