@@ -8,11 +8,17 @@ import {
   Pressable,
 } from 'react-native';
 import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({
     Poppins_600SemiBold,
   });
+
+  const handleGoogleLogin = () => {
+    // 테스트 화면으로 이동
+    router.push('/select');
+  };
 
   if (!fontsLoaded) return null;
 
@@ -32,7 +38,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.googleButton}
-          onPress={() => alert('구글 로그인은 나중에 추가할게요!')}
+          onPress={handleGoogleLogin}
         >
           <Image
             source={{
