@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import requests
 from dotenv import load_dotenv
 import os
@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from fastapi import Query
 
+<<<<<<< Updated upstream
 # FastAPI 인스턴스
 app = FastAPI()
 
@@ -27,20 +28,36 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+=======
+# FastAPI 앱 인스턴스 생성
+app = FastAPI() 
+app.add_middleware( 
+    CORSMiddleware,
+    allow_origins=["*"],
+>>>>>>> Stashed changes
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
 
+<<<<<<< Updated upstream
 # 환경변수 불러오기
+=======
+# API 키 불러오기
+>>>>>>> Stashed changes
 load_dotenv()
 SPOONACULAR_API_KEY = os.getenv("SPOONACULAR_API_KEY")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 
+<<<<<<< Updated upstream
 # API 주소
 SPOONACULAR_COMPLEX_SEARCH_URL = "https://api.spoonacular.com/recipes/complexSearch"
 SUBSTITUTE_URL = "https://api.spoonacular.com/food/ingredients/substitutes"
+=======
+# Spoonacular & DeepL API URL
+SPOONACULAR_RECIPE_URL = "https://api.spoonacular.com/recipes/findByIngredients"
+>>>>>>> Stashed changes
 DEEPL_URL = "https://api-free.deepl.com/v2/translate"
 RECIPE_INFO_URL = "https://api.spoonacular.com/recipes/{id}/information"
 
@@ -58,6 +75,7 @@ def translate_with_deepl(text, target_lang="EN"):
         print("❌ 번역 실패:", response.text)
         return text
 
+<<<<<<< Updated upstream
 # 레시피 추천 함수 (복합 조건)
 def get_recipes_complex(ingredients, allergies=None, cuisine=None, diet=None):
     translated_ingredients = [translate_with_deepl(i, target_lang="EN") for i in ingredients]
@@ -71,6 +89,15 @@ def get_recipes_complex(ingredients, allergies=None, cuisine=None, diet=None):
         "number": 5,
         "addRecipeInformation": True,
         "fillIngredients": True,  # 재료 정보 포함
+=======
+# Spoonacular 레시피 검색 함수
+def get_recipes_by_ingredients(ingredients):
+    translated_ingredients = [translate_with_deepl(ingredient, target_lang="EN") for ingredient in ingredients]
+
+    params = {
+        "ingredients": ",".join(translated_ingredients),
+        "number": 5,
+>>>>>>> Stashed changes
         "apiKey": SPOONACULAR_API_KEY
     }
 
@@ -80,6 +107,7 @@ def get_recipes_complex(ingredients, allergies=None, cuisine=None, diet=None):
         print("❌ 복합 검색 실패:", response.text)
         return {"error": "Failed to retrieve complex search recipes"}
 
+<<<<<<< Updated upstream
     recipes = response.json().get("results", [])
     
     # 각 레시피에 대해 재료 정보 처리
@@ -108,13 +136,27 @@ def get_substitutes(ingredient_name):
         return {"error": "Failed to retrieve substitutes"}
 
 # ✅ 요청 모델 정의 (프론트엔드에 맞춤)
+=======
+# 요청 모델
+>>>>>>> Stashed changes
 class IngredientsRequest(BaseModel):
     ingredients: List[str]
     allergies: Optional[str] = ""         # "계란,우유"
     cuisine: Optional[str] = None         # Korean, Italian
     dietary: Optional[str] = None         # vegetarian, vegan 등
 
+<<<<<<< Updated upstream
 # ✅ 레시피 추천 API
+=======
+    @field_validator("ingredients")
+    @classmethod
+    def check_minimum_ingredients(cls, v):
+        if len(v) < 3:
+            raise ValueError("❌ 최소 3개 이상의 재료를 입력해야 합니다.")
+        return v
+
+# 레시피 검색 엔드포인트
+>>>>>>> Stashed changes
 @app.post("/get_recipes/")
 def get_recipes(request: IngredientsRequest):
     print("📥 받은 요청 데이터:", {
@@ -124,6 +166,7 @@ def get_recipes(request: IngredientsRequest):
         "dietary": request.dietary
     })
 
+<<<<<<< Updated upstream
     # 알레르기 문자열 → 리스트
     allergies = request.allergies.split(",") if request.allergies else []
 
@@ -190,3 +233,10 @@ def get_substitute(request: IngredientsRequest):
     translated_substitutes = [translate_with_deepl(s, target_lang="KO") for s in substitutes]
 
     return {"substitutes": translated_substitutes}
+=======
+    for recipe in recipes:
+        if "title" in recipe:
+            recipe["title_kr"] = translate_with_deepl(recipe["title"], target_lang="KO")
+
+    return recipes
+>>>>>>> Stashed changes
