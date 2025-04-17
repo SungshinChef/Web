@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Pressable,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 
 export default function LoginScreen() {
+  const router = useRouter();
+
   const [fontsLoaded] = useFonts({
     Poppins_600SemiBold,
   });
@@ -24,6 +27,7 @@ export default function LoginScreen() {
       {/* 중앙 콘텐츠 */}
       <View style={styles.content}>
         <Text style={styles.title}>Log In</Text>
+
         <Image
           source={require('../assets/logo.png')}
           style={styles.logo}
@@ -43,7 +47,8 @@ export default function LoginScreen() {
           <Text style={styles.buttonText}>Log in with Google</Text>
         </TouchableOpacity>
 
-        <Pressable onPress={() => alert('눌렀다!')}>
+        {/* ✅ 화면 전환 연결 */}
+        <Pressable onPress={() => router.push('/recipe-setup')}>
           <Text style={styles.subText}>이미 계정이 있으신가요?</Text>
         </Pressable>
       </View>
@@ -54,16 +59,16 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFD6A5', // 연한 살구색
+    backgroundColor: '#FFD6A5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomBackground: {
     position: 'absolute',
-    bottom: -50, // 위로 올라오게!
+    bottom: -50,
     width: '120%',
     height: 300,
-    backgroundColor: '#F29C50', // 진한 주황
+    backgroundColor: '#F29C50',
     borderTopLeftRadius: 300,
     borderTopRightRadius: 300,
     zIndex: -1,
