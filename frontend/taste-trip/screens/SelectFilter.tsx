@@ -111,9 +111,9 @@ export default function TestScreen() {
       ...customAllergies
     ];
 
-    // function 화면으로 이동하면서 식단과 알레르기 정보 전달
+    // main 화면으로 이동하면서 식단과 알레르기 정보 전달
     router.push({
-      pathname: "/(tabs)/function",
+      pathname: "/main",
       params: {
         dietary: JSON.stringify(selectedDietary),
         allergies: selectedAllergies.join(',')
@@ -252,7 +252,7 @@ export default function TestScreen() {
               placeholder="알레르기 항목을 입력하세요"
               placeholderTextColor="#999"
             />
-            <View style={styles.modalButtons}>
+            <View style={styles.modalButtonContainer}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setModalVisible(false)}
@@ -296,112 +296,117 @@ export default function TestScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  bottomContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    backgroundColor: '#FFD6A5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    padding: 16,
+    backgroundColor: '#FFD6A5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F29C50',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#813D2C',
+    marginLeft: 16,
   },
   backButton: {
     padding: 8,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginLeft: 8,
-    color: '#000',
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#FFD6A5',
+  },
+  scrollContent: {
+    padding: 16,
   },
   section: {
-    marginTop: 20,
-    paddingHorizontal: 20,
+    marginBottom: 24,
+    backgroundColor: '#FFEFD5',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F29C50',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    backgroundColor: '#F2B28A',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#813D2C',
+    backgroundColor: '#F29C50',
+    padding: 8,
+    borderRadius: 8,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
   sectionContent: {
-    backgroundColor: '#FFF1E6',
-    borderRadius: 12,
-    padding: 15,
-    gap: 10,
-    marginBottom: 10,
+    gap: 12,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 4,
   },
   checkbox: {
     width: 24,
     height: 24,
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#000',
-    borderRadius: 4,
-    marginRight: 10,
+    borderColor: '#F29C50',
+    backgroundColor: '#FFEFD5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#F2B28A',
-    borderColor: '#F2B28A',
+    backgroundColor: '#F29C50',
   },
   checkmark: {
-    color: '#FFF',
+    color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
   },
   checkboxLabel: {
+    marginLeft: 12,
     fontSize: 16,
-    color: '#000',
+    color: '#5B2C20',
   },
-  bottomButtons: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    gap: 10,
+  customAllergyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  recommendButton: {
-    backgroundColor: '#FFF1E6',
-    padding: 15,
-    borderRadius: 25,
+  deleteButton: {
+    padding: 4,
+  },
+  addButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F2C078',
+    borderRadius: 8,
     alignItems: 'center',
   },
-  recommendButtonText: {
-    color: '#000',
+  addButtonText: {
+    color: '#5B2C20',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  bottomContainer: {
+    padding: 16,
+    backgroundColor: '#FFD6A5',
+    borderTopWidth: 1,
+    borderTopColor: '#F29C50',
   },
   saveButton: {
-    backgroundColor: '#F2B28A',
-    padding: 15,
-    borderRadius: 25,
+    backgroundColor: '#F29C50',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '500',
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
@@ -410,58 +415,54 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#FFF1E6',
-    borderRadius: 20,
-    padding: 20,
     width: '80%',
-    alignItems: 'center',
+    backgroundColor: '#FFEFD5',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F29C50',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    color: '#000',
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#813D2C',
+    textAlign: 'center',
   },
   input: {
-    width: '100%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
+    backgroundColor: '#FFD6A5',
     borderWidth: 1,
-    borderColor: '#F2B28A',
+    borderColor: '#F29C50',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
+    color: '#5B2C20',
   },
-  modalButtons: {
+  modalButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
+    gap: 12,
   },
   modalButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 10,
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#FFE5D1',
-  },
-  confirmButton: {
-    backgroundColor: '#F2B28A',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F29C50',
   },
   modalButtonText: {
-    color: '#000',
-    textAlign: 'center',
-    fontWeight: '500',
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  customAllergyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 8,
+  cancelButton: {
+    backgroundColor: '#FFD6A5',
+    borderWidth: 1,
+    borderColor: '#F29C50',
   },
-  deleteButton: {
-    padding: 5,
-    marginLeft: 10,
+  cancelButtonText: {
+    color: '#5B2C20',
   },
   alertModalContainer: {
     flex: 1,
@@ -503,17 +504,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-  addButton: {
+  confirmButton: {
     backgroundColor: '#F2B28A',
-    padding: 15,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginTop: 15,
-    marginHorizontal: 10,
-  },
-  addButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
