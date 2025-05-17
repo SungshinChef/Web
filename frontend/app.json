@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "taste-trip",
-    "slug": "taste-trip",
+    "name": "frontend",
+    "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -33,6 +34,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "expo-web-browser",
       "expo-font"
     ],
     "experiments": {

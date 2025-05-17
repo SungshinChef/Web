@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,18 +6,65 @@ import {
   Image,
   TouchableOpacity,
   Pressable,
+  Platform,
 } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
+
+WebBrowser.maybeCompleteAuthSession();
+
+let BACKEND_URL = '';
+
+if (Platform.OS === 'web') {
+  // 웹 환경: localhost 사용
+  BACKEND_URL = 'http://localhost:8000';
+} else {
+  // 앱(Expo Go, 실기기): 내 컴퓨터의 IP 사용
+  BACKEND_URL = 'http://192.168.0.35:8000'; // ← 본인 컴퓨터 IP로!
+}
 
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({
     Poppins_600SemiBold,
   });
 
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: "38901878904-lsb42e83dfei6ohv65q1t7kv6tbb7n1u.apps.googleusercontent.com", // 웹용 clientId
+    iosClientId: "iOS용 clientId", // 예: 962992958749-xxxxxxx.apps.googleusercontent.com
+    androidClientId: "Android용 clientId", // 예: 962992958749-xxxxxxx.apps.googleusercontent.com
+    // redirectUri: Google.makeRedirectUri({ useProxy: true }), // 보통 생략해도 자동 처리됨
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      if (authentication?.idToken) {
+        fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: authentication.idToken }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log('서버 응답:', data);
+            if (data.result === 'success') {
+              router.push('/select');
+            } else {
+              alert('로그인 실패: ' + JSON.stringify(data));
+            }
+          })
+          .catch(err => {
+            console.log('서버 연결 실패:', err);
+            alert('서버 연결 실패: ' + err);
+          });
+      }
+    }
+  }, [response]);
+
   const handleGoogleLogin = () => {
-    // 테스트 화면으로 이동
-    router.push('/select');
+    promptAsync();
   };
 
   if (!fontsLoaded) return null;
