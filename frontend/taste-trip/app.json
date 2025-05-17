@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "taste-trip",
+    "owner": "zangzoo",
     "slug": "taste-trip",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,12 +10,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.taste-trip.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "package": "com.taste-trip.app"
       }
     },
     "web": {
@@ -37,6 +43,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7bd09cd0-682a-40ce-92b7-34001c56bc7d"
+      }
     }
   }
 }
