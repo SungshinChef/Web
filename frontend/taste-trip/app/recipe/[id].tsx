@@ -24,12 +24,12 @@ export default function RecipeDetailScreen() {
 
   // BACKEND_URL 설정
   const BACKEND_URL = __DEV__ 
-    ? Platform.select({
-        ios: 'http://localhost:8000',
-        android: 'http://10.0.2.2:8000',
-        default: 'http://localhost:8000'
-      })
-    : 'https://your-production-backend-url.com';
+  ? Platform.select({
+      ios: 'http://172.30.1.100:8000',
+      android: 'http://172.30.1.100:8000',
+      default: 'http://172.30.1.100:8000'
+    })
+  : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
 
   useEffect(() => {
     fetchRecipeDetails();

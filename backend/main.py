@@ -6,6 +6,11 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from fastapi import Query
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from sqlalchemy import create_engine, Column, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 # FastAPI 인스턴스
 app = FastAPI()
@@ -44,6 +49,22 @@ SPOONACULAR_RECIPE_URL = "https://api.spoonacular.com/recipes/findByIngredients"
 SUBSTITUTE_URL = "https://api.spoonacular.com/food/ingredients/substitutes"
 DEEPL_URL = "https://api-free.deepl.com/v2/translate"
 RECIPE_INFO_URL = "https://api.spoonacular.com/recipes/{id}/information"
+
+# 구글 OAuth 클라이언트 ID
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
+# PostgreSQL 접속 정보 (환경변수로 관리 추천)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(String, primary_key=True, index=True)  # 구글 sub
+    email = Column(String, unique=True, index=True)
+    name = Column(String)
 
 # 번역 함수
 def translate_with_deepl(text, target_lang="EN"):
@@ -108,6 +129,9 @@ def get_recipes_by_ingredients(ingredients):
         return response.json()
     else:
         raise HTTPException(status_code=502, detail="❌ 레시피 정보를 가져오는데 실패했습니다.")
+    
+class SubstituteRequest(BaseModel):
+    ingredients: List[str]
 
 # Substitute 검색 함수
 def get_substitutes(ingredient_name):
@@ -296,3 +320,29 @@ def get_substitute(request: IngredientsRequest):
     translated_substitutes = [translate_with_deepl(s, target_lang="KO") for s in substitutes]
 
     return {"substitutes": translated_substitutes}
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
+
+class GoogleToken(BaseModel):
+    token: str
+
+@app.post("/api/auth/google")
+def google_login(token: GoogleToken):
+    try:
+        idinfo = id_token.verify_oauth2_token(token.token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        userid = idinfo['sub']
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+
+        db = SessionLocal()
+        user = db.query(User).filter(User.id == userid).first()
+        if not user:
+            user = User(id=userid, email=email, name=name)
+            db.add(user)
+            db.commit()
+        db.close()
+        return {"result": "success", "user": {"id": userid, "email": email, "name": name}}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
