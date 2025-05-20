@@ -1,10 +1,11 @@
-// app/(tabs)/index.tsx
+// app/(tabs)/function.tsx
 import React, { useState, useEffect } from 'react';
 import { Text, TextInput, Button, View, ScrollView, Linking, StyleSheet, Alert, Platform, Modal, TouchableOpacity, FlatList } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Recipe {
   id: number;
@@ -25,46 +26,106 @@ interface DietaryOption {
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  
-  // 재료 정보
-  const [searchIngredients, setSearchIngredients] = useState(params.ingredients as string || '');
-  
-  // 식단 정보
-  const dietaryString = params.dietary as string || '';
-  const dietary: DietaryOption[] = dietaryString ? JSON.parse(dietaryString) : [];
-  
-  // 알레르기 정보
-  const allergies = params.allergies as string || '';
-
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [substitutes, setSubstitutes] = useState<string[]>([]);
-  const [recipeLoading, setRecipeLoading] = useState(false);
-  const [substituteLoading, setSubstituteLoading] = useState(false);
-  const [showRecipes, setShowRecipes] = useState(true);
-  const [selectedCuisine, setSelectedCuisine] = useState('');
-  const [showCuisinePicker, setShowCuisinePicker] = useState(false);
-  const [percentRecipes, setPercentRecipes] = useState<{[key: string]: Recipe[]}>({});
-  const [showPercentView, setShowPercentView] = useState(false);
-
-  // BACKEND_URL 설정
-  const BACKEND_URL = __DEV__ 
+    // BACKEND_URL 설정
+    const BACKEND_URL = __DEV__ 
     ? Platform.select({
-        ios: 'http://172.30.1.100:8000',
-        android: 'http://172.30.1.100:8000',
-        default: 'http://172.30.1.100:8000'
+        ios: 'http://172.30.33.5:8000',
+        android: 'http://172.30.33.5:8000',
+        default: 'http://172.30.33.5:8000'
       })
     : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
 
-  // 페이지 로드 시 파라미터 확인을 위한 useEffect
+  const router = useRouter();
+
+  // 훅 선언부: 항상 최상단에
+  // 라우터 params에서 ingredients만 꺼내서 초기값으로 설정
+  const params = useLocalSearchParams();
+  const initIngredients = (params.ingredients as string) ?? '';
+  const [searchIngredients, setSearchIngredients] = useState(initIngredients);
+  // dietary, allergies는 DB fetch 후에만 세팅
+  const [dietary, setDietary]                 = useState<DietaryOption[]>([]);
+  const [allergies, setAllergies]             = useState<string>('');
+  const [prefsLoading, setPrefsLoading]       = useState(true);
+  const [recipes, setRecipes]                 = useState<Recipe[]>([]);
+  const [substitutes, setSubstitutes]         = useState<string[]>([]);
+  const [recipeLoading, setRecipeLoading]     = useState(false);
+  const [substituteLoading, setSubstituteLoading] = useState(false);
+  const [showRecipes, setShowRecipes]         = useState(true);
+  const [selectedCuisine, setSelectedCuisine] = useState('');
+  const [showCuisinePicker, setShowCuisinePicker] = useState(false);
+  const [percentRecipes, setPercentRecipes]   = useState<{[key:string]:Recipe[]}>({});
+  const [showPercentView, setShowPercentView] = useState(false);
+  
+  // 사용자 preferences 로딩 (DB에서 식단·알레르기 정보 불러오기)
   useEffect(() => {
-    console.log('Received params:', {
-      ingredients: searchIngredients,
-      dietary: dietary,
-      allergies: allergies
-    });
+    let isMounted = true;
+    (async () => {
+      try {
+        const userJson = await AsyncStorage.getItem('user');
+        const token    = await AsyncStorage.getItem('idToken');
+        if (!userJson || !token) return router.replace('/login');
+        const user = JSON.parse(userJson);
+
+        // 1. AsyncStorage에서 먼저 불러오기
+        let diet = await AsyncStorage.getItem('diet');
+        let alg  = await AsyncStorage.getItem('allergies');
+        if (isMounted) {
+          setDietary(diet ? JSON.parse(diet) : []);
+          setAllergies(alg || '');
+          setPrefsLoading(false); // 바로 UI 보여주기
+        }
+
+        // 2. 네트워크로 최신 데이터 갱신 (백그라운드)
+        const res = await fetch(`${BACKEND_URL}/api/preferences/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          diet = data.diet;
+          alg  = data.allergies;
+          if (diet) await AsyncStorage.setItem('diet', diet);
+          if (alg) await AsyncStorage.setItem('allergies', alg);
+          if (isMounted) {
+            setDietary(diet ? JSON.parse(diet) : []);
+            setAllergies(alg || '');
+          }
+        }
+      } catch (e) {
+        if (isMounted) {
+          setDietary([]);
+          setAllergies('');
+          setPrefsLoading(false);
+        }
+      }
+    })();
+    return () => { isMounted = false; };
   }, []);
+
+  // 디버깅: ingredients 초기값만 로그
+  useEffect(() => {
+    console.log('Loaded ingredients from route:', searchIngredients);
+  }, [searchIngredients]);
+
+  useEffect(() => {
+    // params 우선, 없으면 AsyncStorage에서 불러오기
+    const loadIngredients = async () => {
+      let ing = params.ingredients as string;
+      if (!ing) {
+        ing = await AsyncStorage.getItem('ingredients') ?? '';
+      }
+      setSearchIngredients(ing);
+    };
+    loadIngredients();
+  }, [params.ingredients]);
+
+  if (prefsLoading) {    
+    return (
+    <View style={styles.center}>        
+      <ActivityIndicator size="large" />
+      <Text>설정 불러오는 중…</Text>
+    </View>
+    );
+  }
 
   const cuisines = [
     { label: '선택 안함', value: '' },
@@ -97,9 +158,14 @@ export default function HomeScreen() {
   ];
 
   const fetchFilteredRecipes = async () => {
-    if (!searchIngredients.trim()) {
-      Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
-      return;
+    let ingredients = searchIngredients.trim();
+    if (!ingredients) {
+      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
+      if (!ingredients) {
+        Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
+        return;
+      }
+      setSearchIngredients(ingredients);
     }
 
     setRecipeLoading(true);
@@ -108,12 +174,13 @@ export default function HomeScreen() {
       console.log("🌐 백엔드 URL:", BACKEND_URL);
       
       const requestBody = {
-        ingredients: searchIngredients.split(',').map(i => i.trim()),
-        allergies: allergies,
+        ingredients: ingredients.split(',').map(i => i.trim()),
+        allergies,                        // DB에서 불러온 CSV 문자열
         cuisine: selectedCuisine,
-        dietary: dietary.length > 0 ? dietary[0].apiValue : null
-      };
-      
+        dietary: dietary.length > 0
+        ? dietary[0].apiValue
+        : null
+     };
       console.log("📤 API 요청 데이터:", requestBody);
 
       const response = await fetch(`${BACKEND_URL}/get_recipes/`, {
@@ -148,16 +215,21 @@ export default function HomeScreen() {
   
 
   const fetchSubstitutes = async () => {
-    if (!searchIngredients.trim()) {
-      Alert.alert("입력 오류", "재료를 입력해주세요.");
-      return;
+    let ingredients = searchIngredients.trim();
+    if (!ingredients) {
+      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
+      if (!ingredients) {
+        Alert.alert("입력 오류", "재료를 입력해주세요.");
+        return;
+      }
+      setSearchIngredients(ingredients);
     }
 
     setSubstituteLoading(true);
     setShowRecipes(false);
     setSubstitutes([]);
     try {
-      const ingredient = searchIngredients.split(',')[0].trim();
+      const ingredient = ingredients.split(',')[0].trim();
       
       const response = await fetch(`${BACKEND_URL}/get_substitutes/`, {
         method: 'POST',
@@ -201,9 +273,14 @@ export default function HomeScreen() {
   };
 
   const fetchPercentRecipes = async () => {
-    if (!searchIngredients.trim()) {
-      Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
-      return;
+    let ingredients = searchIngredients.trim();
+    if (!ingredients) {
+      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
+      if (!ingredients) {
+        Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
+        return;
+      }
+      setSearchIngredients(ingredients);
     }
 
     setRecipeLoading(true);
@@ -211,7 +288,7 @@ export default function HomeScreen() {
     setShowPercentView(true);
     try {
       const requestBody = {
-        ingredients: searchIngredients.split(',').map(i => i.trim()),
+        ingredients: ingredients.split(',').map(i => i.trim()),
         allergies: allergies,
         cuisine: selectedCuisine,
         dietary: dietary.length > 0 ? dietary[0].apiValue : null
@@ -245,13 +322,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView 
-      style={styles.scrollView}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={true}
-      bounces={true}
-      overScrollMode="always"
-    >
+    <ScrollView>
       <Text style={styles.title}>🍽️ 이색 레시피 추천기</Text>
 
       {/* 선택된 재료 표시 */}
@@ -335,23 +406,23 @@ export default function HomeScreen() {
       <View style={styles.buttonContainer}>
         <Button
           title="일반 레시피 찾기"
-          onPress={() => {
-            setShowPercentView(false);
-            fetchFilteredRecipes();
-          }}
+          onPress={fetchFilteredRecipes}
           color="#FF6B00"
+          disabled={!searchIngredients.trim()}
         />
         <View style={{ height: 10 }} />
         <Button
           title="재료 매칭률로 찾기"
           onPress={fetchPercentRecipes}
           color="#FF8C00"
+          disabled={!searchIngredients.trim()}
         />
         <View style={{ height: 10 }} />
         <Button
           title="대체 재료 찾기"
           onPress={fetchSubstitutes}
           color="#FF9F45"
+          disabled={!searchIngredients.trim()}
         />
       </View>
 
@@ -458,7 +529,6 @@ export default function HomeScreen() {
       )}
     </ScrollView>
   );
-  
 }
 
 const getMatchColor = (percentage: string | undefined, isLight: boolean = false) => {
@@ -737,5 +807,11 @@ const styles = StyleSheet.create({
   ingredientsList: {
     color: '#5B2C20',
     lineHeight: 20,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFD6A5',
   },
 });

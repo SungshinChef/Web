@@ -17,7 +17,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 DB_CONFIG = {
     "dbname": "your_db",
     "user": "postgres",
-    "password": "0905",
+    "password": "",
     "host": "localhost",
     "port": "5432",
 }

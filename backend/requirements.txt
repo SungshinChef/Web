@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic
+requests
+python-dotenv
+google-auth
+google-auth-oauthlib
+sqlalchemy
+psycopg2-binary
+supabase-py
+# beautifulsoup4
+# selenium
+# webdriver-manager
+   

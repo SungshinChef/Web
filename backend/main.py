@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException,Depends
 from pydantic import BaseModel, field_validator
 import requests
 from dotenv import load_dotenv
@@ -8,9 +8,13 @@ from typing import List, Optional
 from fastapi import Query
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-from sqlalchemy import create_engine, Column, String
+from sqlalchemy import create_engine, Column, String, Integer, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import Session
+
+from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
 
 # FastAPI 인스턴스
 app = FastAPI()
@@ -43,6 +47,12 @@ load_dotenv()
 SPOONACULAR_API_KEY = os.getenv("SPOONACULAR_API_KEY")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 
+# Supabase 클라이언트 초기화
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+from supabase import create_client
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 # API 주소
 SPOONACULAR_COMPLEX_SEARCH_URL = "https://api.spoonacular.com/recipes/complexSearch"
 SPOONACULAR_RECIPE_URL = "https://api.spoonacular.com/recipes/findByIngredients"
@@ -65,6 +75,21 @@ class User(Base):
     id = Column(String, primary_key=True, index=True)  # 구글 sub
     email = Column(String, unique=True, index=True)
     name = Column(String)
+
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+    id         = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id    = Column(String, ForeignKey("users.id"), unique=True, index=True)
+    diet       = Column(String, nullable=True)  # JSON 문자열로 저장
+    allergies  = Column(String, nullable=True)  # CSV 문자열로 저장
+
+# relationship 설정 (선택)
+User.preferences = relationship(
+    "UserPreferences",
+    backref="user",
+    uselist=False,
+    cascade="all, delete-orphan"
+)
 
 # 번역 함수
 def translate_with_deepl(text, target_lang="EN"):
@@ -132,6 +157,41 @@ def get_recipes_by_ingredients(ingredients):
     
 class SubstituteRequest(BaseModel):
     ingredients: List[str]
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/api/preferences/{user_id}")
+def read_preferences(user_id: str, db: Session = Depends(get_db)):
+    pref = db.query(UserPreferences).filter_by(user_id=user_id).first()
+    if not pref:
+        raise HTTPException(status_code=404, detail="Preferences not set")
+    return {"diet": pref.diet, "allergies": pref.allergies}
+
+@app.post("/api/preferences/{user_id}")
+def create_preferences(
+    user_id: str,
+    payload: dict,  # {"diet": "{...}", "allergies": "a,b,c"}
+    db: Session = Depends(get_db)
+):
+    # 이미 저장되어 있으면 거부
+    exists = db.query(UserPreferences).filter_by(user_id=user_id).first()
+    if exists:
+        raise HTTPException(status_code=400, detail="Preferences already set")
+
+    pref = UserPreferences(
+        user_id=user_id,
+        diet=payload.get("diet"),
+        allergies=payload.get("allergies")
+    )
+    db.add(pref)
+    db.commit()
+    db.refresh(pref)
+    return {"message": "Preferences saved"}
 
 # Substitute 검색 함수
 def get_substitutes(ingredient_name):
@@ -325,24 +385,106 @@ def get_substitute(request: IngredientsRequest):
 def on_startup():
     Base.metadata.create_all(bind=engine)
 
-class GoogleToken(BaseModel):
+class TokenPayload(BaseModel):
     token: str
 
 @app.post("/api/auth/google")
-def google_login(token: GoogleToken):
+def google_login(payload: TokenPayload):
+    db = SessionLocal()
     try:
-        idinfo = id_token.verify_oauth2_token(token.token, google_requests.Request(), GOOGLE_CLIENT_ID)
-        userid = idinfo['sub']
-        email = idinfo['email']
-        name = idinfo.get('name', '')
+        # 1) 구글 토큰 검증
+        idinfo = id_token.verify_oauth2_token(
+            payload.token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        user_id = idinfo["sub"]
+        email   = idinfo.get("email")
+        name    = idinfo.get("name")
 
-        db = SessionLocal()
-        user = db.query(User).filter(User.id == userid).first()
-        if not user:
-            user = User(id=userid, email=email, name=name)
-            db.add(user)
-            db.commit()
-        db.close()
-        return {"result": "success", "user": {"id": userid, "email": email, "name": name}}
+        # 2) DB에 사용자 존재 여부 확인
+        existing = db.query(User).filter(User.id == user_id).first()
+        if existing:
+            return {"message": "이미 등록된 사용자", "user": {
+                "id": existing.id,
+                "email": existing.email,
+                "name": existing.name
+            }}
+
+        # 신규 사용자 저장
+        new_user = User(id=user_id, email=email, name=name)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        # ▶ Supabase에도 upsert
+        supabase.table("users").upsert({
+            "id":    new_user.id,
+            "email": new_user.email,
+            "name":  new_user.name
+        }).execute()
+
+        return {
+            "message": "회원가입 성공",
+            "user": {
+                "id":    new_user.id,
+                "email": new_user.email,
+                "name":  new_user.name
+            },
+            "result": "success"
+        }
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()
+
+@app.websocket("/ws/users")
+async def users_ws(websocket: WebSocket):
+    """
+    Supabase 'users' 테이블의 INSERT/UPDATE/DELETE 이벤트를
+    WebSocket으로 실시간 전송합니다.
+    """
+    await websocket.accept()
+    # Supabase Realtime 채널 구독
+    channel = (
+        supabase
+        .channel("public:users")
+        .on("INSERT",  lambda payload: asyncio.create_task(
+            websocket.send_json({"event": "INSERT", "new": payload["new"]})
+        ))
+        .on("UPDATE",  lambda payload: asyncio.create_task(
+            websocket.send_json({"event": "UPDATE", "new": payload["new"]})
+        ))
+        .on("DELETE",  lambda payload: asyncio.create_task(
+            websocket.send_json({"event": "DELETE", "old": payload["old"]})
+        ))
+        .subscribe()
+    )
+
+    try:
+        # 클라이언트가 연결을 끊을 때까지 대기
+        while True:
+            await asyncio.sleep(1)
+    except WebSocketDisconnect:
+        # 클라이언트가 연결을 종료한 경우
+        pass
+    finally:
+        # 구독 해제
+        supabase.remove_channel(channel)
+
+@app.get("/api/user/{user_id}")
+def get_user_info(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # avatar는 예시로 기본 이미지 URL 사용, nickname은 name과 동일하게 반환
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "nickname": user.name,
+        "avatar": "https://randomuser.me/api/portraits/men/32.jpg"
+    }
