@@ -31,7 +31,7 @@ export default function LoginScreen() {
   });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "38901878904-lsb42e83dfei6ohv65q1t7kv6tbb7n1u.apps.googleusercontent.com", // 웹용 clientId
+    clientId: "", // 웹용 clientId
     iosClientId: "iOS용 clientId", // 예: 962992958749-xxxxxxx.apps.googleusercontent.com
     androidClientId: "Android용 clientId", // 예: 962992958749-xxxxxxx.apps.googleusercontent.com
     // redirectUri: Google.makeRedirectUri({ useProxy: true }), // 보통 생략해도 자동 처리됨
