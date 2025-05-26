@@ -16,6 +16,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import BottomTabBar from '../components/BottomTabBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -62,15 +63,10 @@ export default function IngredientScreen() {
       Alert.alert('알림', '재료를 하나 이상 입력해주세요.');
       return;
     }
-
-    // function 화면으로 이동하면서 모든 파라미터 전달
+    // AsyncStorage는 fallback 용도로만 사용
     router.push({
       pathname: '/(tabs)/function',
-      params: {
-        ingredients: ingredientsList.join(','),
-        dietary: dietary,
-        allergies: allergies
-      }
+      params: { ingredients: ingredientsList.join(',') }
     });
   };
 

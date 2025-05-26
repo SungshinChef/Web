@@ -1,4 +1,3 @@
-// LoginScreen.js
 import React, { useEffect } from 'react';
 import {
   View,
@@ -12,60 +11,75 @@ import {
 } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-// ✏️ 추가: makeRedirectUri, ResponseType 가져오기
 import { makeRedirectUri, ResponseType } from 'expo-auth-session';
 import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
-let BACKEND_URL = '';
-if (Platform.OS === 'web') {
-  BACKEND_URL = 'http://localhost:8000';
-} else {
-  BACKEND_URL = 'http://192.168.0.35:8000';
-}
+const BACKEND_URL = Platform.OS === 'web'
+  ? 'http://localhost:8000'
+  : 'http://192.168.0.35:8000';
 
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "",
-    iosClientId: "",
-    androidClientId: "",
+    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
+    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
+    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
     scopes: ['openid', 'profile', 'email'],
     responseType: ResponseType.IdToken,
-    redirectUri:    makeRedirectUri({ useProxy: true }),
+    redirectUri: makeRedirectUri(),
   });
 
+  const { setUserId } = useAuth();
+
   useEffect(() => {
-    if (response?.type === 'success') {
-      // Web에서는 response.params.id_token, Native에서는 response.authentication.idToken
+    const handleLogin = async () => {
+      if (response?.type !== 'success') return;
       const idToken = response.params.id_token ?? response.authentication?.idToken;
       if (!idToken) return;
 
-      fetch(`${BACKEND_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: idToken }),
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log('서버 응답:', data);
-          if (data.result === 'success') {
-            router.push('/select');
-          } else {
-            Alert.alert('로그인 실패', JSON.stringify(data));
-          }
-        })
-        .catch(err => {
-          console.log('서버 연결 실패:', err);
-          Alert.alert('서버 연결 실패', err.message);
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: idToken }),
         });
-    }
+        const data = await res.json();
+        console.log('서버 응답:', data);
+
+        if (data.user && data.user.id) {
+          // 1) 로그인 정보 저장 (nickname 포함)
+          const userInfo = {
+            id: data.user.id,
+            email: data.user.email,
+            nickname: data.user.nickname ?? data.user.name ?? '사용자',
+          };
+          await AsyncStorage.setItem('user', JSON.stringify(userInfo));
+          await AsyncStorage.setItem('idToken', idToken);
+
+          console.log('✅ 로그인 성공. userId 저장:', userInfo.id);
+          if (setUserId) setUserId(userInfo.id);
+
+          // 2) 설정 화면으로 이동
+          router.push('/select');
+        } else {
+          Alert.alert('로그인 실패', JSON.stringify(data));
+        }
+      } catch (err: any) {
+        console.log('서버 연결 실패:', err);
+        Alert.alert('서버 연결 실패', err.message);
+      }
+    };
+
+    handleLogin();
   }, [response]);
 
   const handleGoogleLogin = () => {
-    promptAsync({ useProxy: true });
+    promptAsync();
   };
 
   if (!fontsLoaded) return null;
@@ -102,38 +116,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFD6A5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#FFD6A5', alignItems: 'center', justifyContent: 'center' },
   bottomBackground: {
-    position: 'absolute',
-    bottom: -50,
-    width: '120%',
-    height: 300,
-    backgroundColor: '#F29C50',
-    borderTopLeftRadius: 300,
-    borderTopRightRadius: 300,
-    zIndex: -1,
-    alignSelf: 'center',
+    position: 'absolute', bottom: -50, width: '120%', height: 300,
+    backgroundColor: '#F29C50', borderTopLeftRadius: 300, borderTopRightRadius: 300,
+    zIndex: -1, alignSelf: 'center'
   },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    zIndex: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: 'Poppins_600SemiBold',
-    color: '#813D2C',
-  },
-  logo: {
-    width: 140,
-    height: 140,
-  },
+  content: { alignItems: 'center', justifyContent: 'center', gap: 20, zIndex: 1 },
+  title: { fontSize: 32, fontFamily: 'Poppins_600SemiBold', color: '#813D2C' },
+  logo: { width: 140, height: 140 },
   googleButton: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -143,20 +134,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 2,
   },
-  googleLogo: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#000',
-    fontFamily: 'Poppins_600SemiBold',
-  },
-  subText: {
-    fontSize: 14,
-    color: '#5B2C20',
-    textDecorationLine: 'underline',
-    marginTop: 5,
-  },
+  googleLogo: { width: 20, height: 20, marginRight: 10 },
+  buttonText: { fontSize: 16, color: '#000', fontFamily: 'Poppins_600SemiBold' },
+  subText: { fontSize: 14, color: '#5B2C20', textDecorationLine: 'underline', marginTop: 5 },
 });

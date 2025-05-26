@@ -1,5 +1,10 @@
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
+import { AuthProviderWithInit } from '../context/AuthContext'; // 경로 주의
 
-export default function Layout() {
-  return <Stack initialRouteName="index" />;
+export default function RootLayout() {
+  return (
+    <AuthProviderWithInit>
+      <Slot />
+    </AuthProviderWithInit>
+  );
 }
