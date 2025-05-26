@@ -12,7 +12,7 @@ interface Recipe {
   title: string;
   title_kr?: string;  // 한글 제목 추가
   image: string;
-  readyInMinutes: number;
+  readyInMinutes: number; 
   servings: number;
   sourceUrl: string;
   instructions?: string;

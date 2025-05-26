@@ -33,7 +33,7 @@ export default function BottomTabBar() {
       >
         <Image 
           source={require('../assets/recommend_logo.png')} 
-          style={getIconStyle('/main')} 
+          style={getIconStyle('/main')}  
         />
       </TouchableOpacity>
       <TouchableOpacity 

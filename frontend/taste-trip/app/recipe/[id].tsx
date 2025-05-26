@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   // --- 가지고 있는 재료 스타일 추가 ---
   ownedIngredientText: {
     color: '#007bff', // 파란색으로 표시 (원하는 색상으로 변경 가능)
-    fontWeight: 'bold', // 강조하고 싶다면 추가
+    fontWeight: 'bold', // 강조하고 싶다면 추가 
   },
   // ------------------------------
 }); 

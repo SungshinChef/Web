@@ -24,7 +24,7 @@ app = FastAPI()
 origins = [
     "http://localhost",
     "http://localhost:8000",
-    "http://localhost:19000",  # Expo 개발 서버
+    "http://localhost:19000",  # Expo 개발 서버 
     "http://localhost:19006",  # Expo 웹
     "exp://localhost:19000",   # Expo Go
     "http://172.30.1.25:8000", # 현재 백엔드 URL

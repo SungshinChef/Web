@@ -29,7 +29,7 @@ export default function LoginScreen() {
     clientId: "",
     iosClientId: "",
     androidClientId: "",
-    scopes: ['openid', 'profile', 'email'],
+    scopes: ['openid', 'profile', 'email'], 
     responseType: ResponseType.IdToken,
     redirectUri: makeRedirectUri(),
   });
