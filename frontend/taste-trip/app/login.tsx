@@ -26,9 +26,9 @@ const BACKEND_URL = Platform.OS === 'web'
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
-    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
-    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
+    clientId: "",
+    iosClientId: "",
+    androidClientId: "",
     scopes: ['openid', 'profile', 'email'],
     responseType: ResponseType.IdToken,
     redirectUri: makeRedirectUri(),
