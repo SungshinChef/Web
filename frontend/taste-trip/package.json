@@ -22,7 +22,6 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "axios": "^1.9.0",
-    "dotenv": "^16.5.0",
     "expo": "^53.0.0",
     "expo-auth-session": "~6.1.5",
     "expo-blur": "~14.1.4",
