@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 
 const BACKEND_URL = Platform.OS === 'web'
   ? 'http://localhost:8000'
@@ -34,13 +35,16 @@ const DIETARY_OPTIONS = {
 } as const;
 
 export default function TestScreen() {
+  const { mode } = useLocalSearchParams(); // ✅ mode 파라미터 추가
+  console.log('🔍 select.tsx mode:', mode);
+  const actualMode = Array.isArray(mode) ? mode[0] : mode;
+
   const [dietaryItems, setDietaryItems] = useState<DietaryItems>({
     베지테리언: { checked: false, apiValue: 'vegetarian' },
     비건: { checked: false, apiValue: 'vegan' },
     글루텐프리: { checked: false, apiValue: 'gluten free' },
     저탄고지: { checked: false, apiValue: 'ketogenic' },
   });
-
   const [allergyItems, setAllergyItems] = useState<AllergyItems>({
     계란: false,
     견과류: false,
@@ -48,14 +52,14 @@ export default function TestScreen() {
     갑각류: false,
     복숭아: false,
   });
-
   const [customAllergies, setCustomAllergies] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [newAllergy, setNewAllergy] = useState('');
-
   const [loading, setLoading] = useState(true);
+  const { setUserId } = useAuth();
+
   useEffect(() => {
     (async () => {
       try {
@@ -64,20 +68,29 @@ export default function TestScreen() {
           return router.replace('/login');
         }
         const user = JSON.parse(userJson);
+
+        if (user?.id) {
+          console.log('🟢 select에서 userId 복원:', user.id);
+          setUserId(user.id);
+        }
+
         const token = await AsyncStorage.getItem('idToken');
         const res = await fetch(`${BACKEND_URL}/api/preferences/${user.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
+
+        if (res.ok && mode !== 'edit') {
           router.replace('/main');
           return;
         }
       } catch (err) {
+        console.log('❗ select.tsx 초기화 실패:', err);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
+
 
   if (loading) {
     return (
@@ -141,10 +154,11 @@ export default function TestScreen() {
     if (!user || !token) {
       return Alert.alert('Error', '로그인 정보가 없습니다.');
     }
+    const method = actualMode === 'edit' ? 'PUT' : 'POST';
     const res = await fetch(
       `${BACKEND_URL}/api/preferences/${user.id}`,
       {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -152,14 +166,20 @@ export default function TestScreen() {
         body: JSON.stringify({
           diet: JSON.stringify(selectedDietary),
           allergies: selectedAllergies.join(',')
-        })
-      }
-    );
+    })
+  }
+);
+
     if (!res.ok) {
       const err = await res.json();
       return Alert.alert('Error', err.detail || 'Preferences 저장에 실패했습니다.');
     }
-    router.push("/main");
+    console.log('✅ 저장 성공, 이동 시작. mode:', mode);
+    if (actualMode === 'edit') {
+      router.replace('/myinfo');
+    } else {
+      router.push('/main');
+    }
   };
 
   const handleAddAllergy = () => {

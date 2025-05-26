@@ -1,11 +1,41 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AuthContextType = {
   userId: string | null;
-  setUserId?: (id: string | null) => void;
-  // 필요하다면 추가로 토큰, 이메일 등도 여기에 선언
+  setUserId: (id: string | null) => void;
 };
 
-export const AuthContext = createContext<AuthContextType>({ userId: null });
+const AuthContext = createContext<AuthContextType>({
+  userId: null,
+  setUserId: () => {},
+});
+
+export const AuthProviderWithInit = ({ children }: { children: ReactNode }) => {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const userJson = await AsyncStorage.getItem('user');
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          if (user?.id) {
+            console.log('🔄 AuthProvider 초기 userId:', user.id);
+            setUserId(user.id);
+          }
+        }
+      } catch (err) {
+        console.log('❗ userId 복원 실패:', err);
+      }
+    })();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ userId, setUserId }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => useContext(AuthContext);

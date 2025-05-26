@@ -7,7 +7,7 @@ google-auth
 google-auth-oauthlib
 sqlalchemy
 psycopg2-binary
-supabase-py
+supabase
 # beautifulsoup4
 # selenium
 # webdriver-manager

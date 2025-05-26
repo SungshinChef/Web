@@ -488,3 +488,19 @@ def get_user_info(user_id: str, db: Session = Depends(get_db)):
         "nickname": user.name,
         "avatar": "https://randomuser.me/api/portraits/men/32.jpg"
     }
+@app.put("/api/preferences/{user_id}")
+def update_preferences(
+    user_id: str,
+    payload: dict,
+    db: Session = Depends(get_db)
+):
+    pref = db.query(UserPreferences).filter_by(user_id=user_id).first()
+    if not pref:
+        raise HTTPException(status_code=404, detail="Preferences not found")
+
+    pref.diet = payload.get("diet", pref.diet)
+    pref.allergies = payload.get("allergies", pref.allergies)
+
+    db.commit()
+    db.refresh(pref)
+    return {"message": "Preferences updated"}

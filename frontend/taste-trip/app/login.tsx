@@ -1,5 +1,4 @@
-// LoginScreen.tsx
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,7 +15,7 @@ import { makeRedirectUri, ResponseType } from 'expo-auth-session';
 import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,15 +26,15 @@ const BACKEND_URL = Platform.OS === 'web'
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "",
-    iosClientId: "",
-    androidClientId: "",
+    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
+    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
+    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
     scopes: ['openid', 'profile', 'email'],
     responseType: ResponseType.IdToken,
     redirectUri: makeRedirectUri(),
   });
-  const context = useContext(AuthContext);
-  const setUserId = context.setUserId as (id: string | null) => void;
+
+  const { setUserId } = useAuth();
 
   useEffect(() => {
     const handleLogin = async () => {
@@ -53,12 +52,19 @@ export default function LoginScreen() {
         console.log('서버 응답:', data);
 
         if (data.user && data.user.id) {
-          // 1) 로그인 정보 저장
-          await AsyncStorage.setItem('user', JSON.stringify(data.user));
+          // 1) 로그인 정보 저장 (nickname 포함)
+          const userInfo = {
+            id: data.user.id,
+            email: data.user.email,
+            nickname: data.user.nickname ?? data.user.name ?? '사용자',
+          };
+          await AsyncStorage.setItem('user', JSON.stringify(userInfo));
           await AsyncStorage.setItem('idToken', idToken);
-          // 2) userId를 context에 저장
-          if (setUserId) setUserId(data.user.id);
-          // 3) 설정 화면으로 이동
+
+          console.log('✅ 로그인 성공. userId 저장:', userInfo.id);
+          if (setUserId) setUserId(userInfo.id);
+
+          // 2) 설정 화면으로 이동
           router.push('/select');
         } else {
           Alert.alert('로그인 실패', JSON.stringify(data));
@@ -119,7 +125,15 @@ const styles = StyleSheet.create({
   content: { alignItems: 'center', justifyContent: 'center', gap: 20, zIndex: 1 },
   title: { fontSize: 32, fontFamily: 'Poppins_600SemiBold', color: '#813D2C' },
   logo: { width: 140, height: 140 },
-  googleButton: { flexDirection: 'row', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 25, borderRadius: 30, alignItems: 'center', elevation: 2 },
+  googleButton: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    elevation: 2,
+  },
   googleLogo: { width: 20, height: 20, marginRight: 10 },
   buttonText: { fontSize: 16, color: '#000', fontFamily: 'Poppins_600SemiBold' },
   subText: { fontSize: 14, color: '#5B2C20', textDecorationLine: 'underline', marginTop: 5 },

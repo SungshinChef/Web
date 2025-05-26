@@ -1,7 +1,7 @@
+// ✅ 수정된 (tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Stack } from 'expo-router';
 import BottomTabBar from '../../components/BottomTabBar';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -22,13 +22,11 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
+          ios: { position: 'absolute' },
           default: {},
         }),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
