@@ -16,6 +16,7 @@ import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import { GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from "@env";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,9 +27,9 @@ const BACKEND_URL = Platform.OS === 'web'
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "",
-    iosClientId: "",
-    androidClientId: "",
+    clientId: GOOGLE_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     scopes: ['openid', 'profile', 'email'], 
     responseType: ResponseType.IdToken,
     redirectUri: makeRedirectUri(),

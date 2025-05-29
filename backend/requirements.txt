@@ -10,5 +10,4 @@ psycopg2-binary
 supabase
 # beautifulsoup4
 # selenium
-# webdriver-manager
-   
+# webdriver-manager   
