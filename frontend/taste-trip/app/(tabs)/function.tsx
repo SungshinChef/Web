@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, TextInput, Button, View, ScrollView, Linking, StyleSheet, Alert, Platform, Modal, TouchableOpacity, FlatList } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,7 +12,7 @@ interface Recipe {
   title: string;
   title_kr?: string;  // 한글 제목 추가
   image: string;
-  readyInMinutes: number;
+  readyInMinutes: number; 
   servings: number;
   sourceUrl: string;
   instructions?: string;
@@ -29,9 +29,9 @@ export default function HomeScreen() {
     // BACKEND_URL 설정
     const BACKEND_URL = __DEV__ 
     ? Platform.select({
-        ios: 'http://172.30.33.5:8000',
-        android: 'http://172.30.33.5:8000',
-        default: 'http://172.30.33.5:8000'
+        ios: 'http://192.168.0.101:8000',
+        android: 'http://192.168.0.101:8000',
+        default: 'http://192.168.0.101:8000'
       })
     : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
 
@@ -157,12 +157,12 @@ export default function HomeScreen() {
     { label: '베트남 요리', value: 'Vietnamese' }
   ];
 
-  const fetchFilteredRecipes = async () => {
+  async function fetchFilteredRecipes() {
     let ingredients = searchIngredients.trim();
     if (!ingredients) {
       ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
       if (!ingredients) {
-        Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
+        // Alert.alert("입력 오류", "검색할 재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
         return;
       }
       setSearchIngredients(ingredients);
@@ -170,6 +170,7 @@ export default function HomeScreen() {
 
     setRecipeLoading(true);
     setShowRecipes(true);
+    setShowPercentView(false); // 일반 레시피 검색 시 퍼센트 뷰 숨기기
     try {
       console.log("🌐 백엔드 URL:", BACKEND_URL);
       
@@ -211,15 +212,14 @@ export default function HomeScreen() {
     } finally {
       setRecipeLoading(false);
     }
-  };
+  }
   
-
-  const fetchSubstitutes = async () => {
+  async function fetchSubstitutes() {
     let ingredients = searchIngredients.trim();
     if (!ingredients) {
       ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
       if (!ingredients) {
-        Alert.alert("입력 오류", "재료를 입력해주세요.");
+        // Alert.alert("입력 오류", "재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
         return;
       }
       setSearchIngredients(ingredients);
@@ -239,9 +239,9 @@ export default function HomeScreen() {
         },
         body: JSON.stringify({
           ingredients: [ingredient],
-          allergies: "",
-          cuisine: null,
-          dietary: null
+          allergies: allergies, // 알레르기 정보 포함
+          cuisine: selectedCuisine, // 나라 정보 포함
+          dietary: dietary.length > 0 ? dietary[0].apiValue : null // 식단 정보 포함
         }),
       });
       
@@ -264,20 +264,21 @@ export default function HomeScreen() {
     } finally {
       setSubstituteLoading(false);
     }
-  };
+  }
   
-  
-
   const handleRecipePress = (recipeId: number) => {
-    router.push(`/recipe/${recipeId}`);
+    router.push({
+      pathname: `/recipe/${recipeId}` as any,
+      params: { id: recipeId, ownedIngredients: searchIngredients }
+    });
   };
 
-  const fetchPercentRecipes = async () => {
+  async function fetchPercentRecipes() {
     let ingredients = searchIngredients.trim();
     if (!ingredients) {
       ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
       if (!ingredients) {
-        Alert.alert("입력 오류", "검색할 재료를 입력해주세요.");
+        // Alert.alert("입력 오류", "검색할 재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
         return;
       }
       setSearchIngredients(ingredients);
@@ -319,7 +320,7 @@ export default function HomeScreen() {
     } finally {
       setRecipeLoading(false);
     }
-  };
+  }
 
   return (
     <ScrollView>

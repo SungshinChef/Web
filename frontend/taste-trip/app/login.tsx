@@ -16,20 +16,21 @@ import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import { GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from "@env";
 
 WebBrowser.maybeCompleteAuthSession();
 
 const BACKEND_URL = Platform.OS === 'web'
   ? 'http://localhost:8000'
-  : 'http://192.168.0.35:8000';
+  : 'http://192.168.0.101:8000';
 
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "",
-    iosClientId: "",
-    androidClientId: "",
-    scopes: ['openid', 'profile', 'email'],
+    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
+    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
+    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
+    scopes: ['openid', 'profile', 'email'], 
     responseType: ResponseType.IdToken,
     redirectUri: makeRedirectUri(),
   });
