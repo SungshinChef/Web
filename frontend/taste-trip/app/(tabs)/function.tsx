@@ -1,23 +1,33 @@
-// app/(tabs)/function.tsx
+// frontend/taste-trip/app/(tabs)/function.tsx
 import React, { useState, useEffect } from 'react';
-import { Text, TextInput, Button, View, ScrollView, Linking, StyleSheet, Alert, Platform, Modal, TouchableOpacity, FlatList } from 'react-native';
-import { ActivityIndicator } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import Constants from 'expo-constants';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  FlatList,
+  StyleSheet,
+  Dimensions,
+  Platform,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import BottomTabBar from '../../components/BottomTabBar';
+
+const { width } = Dimensions.get('window');
 
 interface Recipe {
   id: number;
   title: string;
-  title_kr?: string;  // 한글 제목 추가
-  image: string;
-  readyInMinutes: number; 
-  servings: number;
-  sourceUrl: string;
-  instructions?: string;
+  title_kr?: string;
   ingredients: string[];
-  match_percentage?: string;  // 매칭 퍼센트 추가
+  readyInMinutes: number;
+  servings: number;
+  match_percentage?: string;
 }
 
 interface DietaryOption {
@@ -25,109 +35,40 @@ interface DietaryOption {
   apiValue: string;
 }
 
-export default function HomeScreen() {
-    // BACKEND_URL 설정
-    const BACKEND_URL = __DEV__ 
-    ? Platform.select({
-        ios: 'http://192.168.0.101:8000',
-        android: 'http://192.168.0.101:8000',
-        default: 'http://192.168.0.101:8000'
-      })
-    : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
-
+export default function FunctionScreen() {
   const router = useRouter();
-
-  // 훅 선언부: 항상 최상단에
-  // 라우터 params에서 ingredients만 꺼내서 초기값으로 설정
   const params = useLocalSearchParams();
-  const initIngredients = (params.ingredients as string) ?? '';
-  const [searchIngredients, setSearchIngredients] = useState(initIngredients);
-  // dietary, allergies는 DB fetch 후에만 세팅
-  const [dietary, setDietary]                 = useState<DietaryOption[]>([]);
-  const [allergies, setAllergies]             = useState<string>('');
-  const [prefsLoading, setPrefsLoading]       = useState(true);
-  const [recipes, setRecipes]                 = useState<Recipe[]>([]);
-  const [substitutes, setSubstitutes]         = useState<string[]>([]);
-  const [recipeLoading, setRecipeLoading]     = useState(false);
-  const [substituteLoading, setSubstituteLoading] = useState(false);
-  const [showRecipes, setShowRecipes]         = useState(true);
-  const [selectedCuisine, setSelectedCuisine] = useState('');
-  const [showCuisinePicker, setShowCuisinePicker] = useState(false);
-  const [percentRecipes, setPercentRecipes]   = useState<{[key:string]:Recipe[]}>({});
-  const [showPercentView, setShowPercentView] = useState(false);
-  
-  // 사용자 preferences 로딩 (DB에서 식단·알레르기 정보 불러오기)
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const userJson = await AsyncStorage.getItem('user');
-        const token    = await AsyncStorage.getItem('idToken');
-        if (!userJson || !token) return router.replace('/login');
-        const user = JSON.parse(userJson);
 
-        // 1. AsyncStorage에서 먼저 불러오기
-        let diet = await AsyncStorage.getItem('diet');
-        let alg  = await AsyncStorage.getItem('allergies');
-        if (isMounted) {
-          setDietary(diet ? JSON.parse(diet) : []);
-          setAllergies(alg || '');
-          setPrefsLoading(false); // 바로 UI 보여주기
-        }
+  // 초기 재료는 params에서, 없으면 AsyncStorage에서
+  const initParamIngredients = (params.ingredients as string) ?? '';
+  const [ingredients, setIngredients] = useState<string>(initParamIngredients);
 
-        // 2. 네트워크로 최신 데이터 갱신 (백그라운드)
-        const res = await fetch(`${BACKEND_URL}/api/preferences/${user.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          diet = data.diet;
-          alg  = data.allergies;
-          if (diet) await AsyncStorage.setItem('diet', diet);
-          if (alg) await AsyncStorage.setItem('allergies', alg);
-          if (isMounted) {
-            setDietary(diet ? JSON.parse(diet) : []);
-            setAllergies(alg || '');
-          }
-        }
-      } catch (e) {
-        if (isMounted) {
-          setDietary([]);
-          setAllergies('');
-          setPrefsLoading(false);
-        }
-      }
-    })();
-    return () => { isMounted = false; };
-  }, []);
+  // 사용자 식단/알레르기 정보
+  const [dietary, setDietary] = useState<DietaryOption[]>([]);
+  const [allergies, setAllergies] = useState<string>('');
+  const [prefsLoading, setPrefsLoading] = useState<boolean>(true);
 
-  // 디버깅: ingredients 초기값만 로그
-  useEffect(() => {
-    console.log('Loaded ingredients from route:', searchIngredients);
-  }, [searchIngredients]);
+  // 레시피 상태
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [matchRecipes, setMatchRecipes] = useState<{ [key: string]: Recipe[] }>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showMatch, setShowMatch] = useState<boolean>(false);
 
-  useEffect(() => {
-    // params 우선, 없으면 AsyncStorage에서 불러오기
-    const loadIngredients = async () => {
-      let ing = params.ingredients as string;
-      if (!ing) {
-        ing = await AsyncStorage.getItem('ingredients') ?? '';
-      }
-      setSearchIngredients(ing);
-    };
-    loadIngredients();
-  }, [params.ingredients]);
+  // 나라 선택 상태
+  const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [showPicker, setShowPicker] = useState<boolean>(false);
 
-  if (prefsLoading) {    
-    return (
-    <View style={styles.center}>        
-      <ActivityIndicator size="large" />
-      <Text>설정 불러오는 중…</Text>
-    </View>
-    );
-  }
+  // 백엔드 URL (개발 모드 / 프로덕션 모드)
+  const BACKEND_URL = __DEV__
+    ? Platform.select({
+        ios: 'http://127.0.0.1:8000',
+        android: 'http://127.0.0.1:8000',
+        default: 'http://127.0.0.1:8000',
+      })
+    : 'https://your-production-backend-url.com';
 
-  const cuisines = [
+  // 나라 목록
+  const cuisineList = [
     { label: '선택 안함', value: '' },
     { label: '아프리카 요리', value: 'African' },
     { label: '미국 요리', value: 'American' },
@@ -154,665 +95,431 @@ export default function HomeScreen() {
     { label: '남부 미국', value: 'Southern' },
     { label: '스페인 요리', value: 'Spanish' },
     { label: '태국 요리', value: 'Thai' },
-    { label: '베트남 요리', value: 'Vietnamese' }
+    { label: '베트남 요리', value: 'Vietnamese' },
   ];
 
-  async function fetchFilteredRecipes() {
-    let ingredients = searchIngredients.trim();
-    if (!ingredients) {
-      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
-      if (!ingredients) {
-        // Alert.alert("입력 오류", "검색할 재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
-        return;
+  // ========== 1) 사용자 정보 (식단/알레르기) 로딩 ==========
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        // 1) AsyncStorage에서 user, diet, allergies, ingredients 불러오기
+        const userJson = await AsyncStorage.getItem('user');
+        const token = await AsyncStorage.getItem('idToken');
+
+        // 로그인 정보 없으면 로그인 화면으로 리다이렉트
+        if (!userJson || !token) {
+          router.replace('/login');
+          return;
+        }
+        const user = JSON.parse(userJson);
+
+        // 로컬 저장된 식단/알레르기 먼저 세팅
+        const storedDiet = await AsyncStorage.getItem('diet');
+        const storedAllergies = await AsyncStorage.getItem('allergies');
+
+        if (isMounted) {
+          setDietary(storedDiet ? JSON.parse(storedDiet) : []);
+          setAllergies(storedAllergies || '');
+          setPrefsLoading(false);
+        }
+
+        // 2) 백그라운드로 서버에서 최신 preferences 받아오기
+        const res = await fetch(`${BACKEND_URL}/api/preferences/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const latestDiet = data.diet;
+          const latestAlgs = data.allergies;
+
+          // AsyncStorage에 갱신
+          if (latestDiet) await AsyncStorage.setItem('diet', latestDiet);
+          if (latestAlgs) await AsyncStorage.setItem('allergies', latestAlgs);
+
+          if (isMounted) {
+            setDietary(latestDiet ? JSON.parse(latestDiet) : []);
+            setAllergies(latestAlgs || '');
+          }
+        }
+      } catch (e) {
+        // 에러 발생 시 기본값으로 세팅
+        if (isMounted) {
+          setDietary([]);
+          setAllergies('');
+          setPrefsLoading(false);
+        }
       }
-      setSearchIngredients(ingredients);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ========== 2) params.ingredients 또는 AsyncStorage에서 재료 세팅 ==========
+  useEffect(() => {
+    // params.ingredients 우선 사용, 없으면 AsyncStorage에서 가져오기
+    const loadIngredients = async () => {
+      let ing = (params.ingredients as string) ?? '';
+      if (!ing) {
+        ing = (await AsyncStorage.getItem('ingredients')) ?? '';
+      }
+      setIngredients(ing);
+    };
+    loadIngredients();
+  }, [params.ingredients]);
+
+  // ========== 3) 일반 레시피 검색 ==========
+  const fetchRecipes = async () => {
+    if (!ingredients.trim()) {
+      Alert.alert('입력 오류', '재료를 입력해주세요.');
+      return;
     }
+    setLoading(true);
+    setShowMatch(false);
 
-    setRecipeLoading(true);
-    setShowRecipes(true);
-    setShowPercentView(false); // 일반 레시피 검색 시 퍼센트 뷰 숨기기
-    try {
-      console.log("🌐 백엔드 URL:", BACKEND_URL);
-      
-      const requestBody = {
-        ingredients: ingredients.split(',').map(i => i.trim()),
-        allergies,                        // DB에서 불러온 CSV 문자열
-        cuisine: selectedCuisine,
-        dietary: dietary.length > 0
-        ? dietary[0].apiValue
-        : null
-     };
-      console.log("📤 API 요청 데이터:", requestBody);
-
-      const response = await fetch(`${BACKEND_URL}/get_recipes/`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      console.log("📥 API 응답 상태:", response.status);
-      const data = await response.json();
-      console.log("📥 API 응답 데이터:", data);
-
-      if (data.error) {
-        Alert.alert("오류", data.error);
-        return;
-      }
-      setRecipes(data || []);
-    } catch (error: any) {
-      console.error("❌ 레시피 검색 오류:", error);
-      Alert.alert("오류", `레시피를 가져오는데 실패했습니다. (${error.message})`);
-    } finally {
-      setRecipeLoading(false);
-    }
-  }
-  
-  async function fetchSubstitutes() {
-    let ingredients = searchIngredients.trim();
-    if (!ingredients) {
-      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
-      if (!ingredients) {
-        // Alert.alert("입력 오류", "재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
-        return;
-      }
-      setSearchIngredients(ingredients);
-    }
-
-    setSubstituteLoading(true);
-    setShowRecipes(false);
-    setSubstitutes([]);
-    try {
-      const ingredient = ingredients.split(',')[0].trim();
-      
-      const response = await fetch(`${BACKEND_URL}/get_substitutes/`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          ingredients: [ingredient],
-          allergies: allergies, // 알레르기 정보 포함
-          cuisine: selectedCuisine, // 나라 정보 포함
-          dietary: dietary.length > 0 ? dietary[0].apiValue : null // 식단 정보 포함
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-  
-      const data = await response.json();
-      console.log("대체 재료 응답:", data);
-      
-      if (data.error) {
-        Alert.alert("오류", data.error);
-        return;
-      }
-      
-      setSubstitutes(data.substitutes || []);
-    } catch (error: any) {
-      console.error("❌ 대체 재료 검색 오류:", error);
-      Alert.alert("오류", `대체 재료를 가져오는데 실패했습니다. (${error.message})`);
-    } finally {
-      setSubstituteLoading(false);
-    }
-  }
-  
-  const handleRecipePress = (recipeId: number) => {
-    router.push({
-      pathname: `/recipe/${recipeId}` as any,
-      params: { id: recipeId, ownedIngredients: searchIngredients }
-    });
-  };
-
-  async function fetchPercentRecipes() {
-    let ingredients = searchIngredients.trim();
-    if (!ingredients) {
-      ingredients = (await AsyncStorage.getItem('ingredients')) ?? '';
-      if (!ingredients) {
-        // Alert.alert("입력 오류", "검색할 재료를 입력해주세요."); // useFocusEffect에서 호출 시 Alert 방지
-        return;
-      }
-      setSearchIngredients(ingredients);
-    }
-
-    setRecipeLoading(true);
-    setShowRecipes(true);
-    setShowPercentView(true);
     try {
       const requestBody = {
-        ingredients: ingredients.split(',').map(i => i.trim()),
-        allergies: allergies,
+        ingredients: ingredients.split(',').map((i) => i.trim()),
+        allergies,
         cuisine: selectedCuisine,
-        dietary: dietary.length > 0 ? dietary[0].apiValue : null
+        dietary:
+            dietary.length > 0
+              ? dietary.map((d) => d.apiValue).join(',')
+              : null,
       };
 
-      const response = await fetch(`${BACKEND_URL}/get_recipes_by_percent/`, {
+      const res = await fetch(`${BACKEND_URL}/get_recipes/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          Accept: 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
-      const data = await response.json();
-      if (data.error) {
-        Alert.alert("오류", data.error);
-        return;
-      }
-      setPercentRecipes(data);
-    } catch (error: any) {
-      console.error("❌ 퍼센트 기반 레시피 검색 오류:", error);
-      Alert.alert("오류", `레시피를 가져오는데 실패했습니다. (${error.message})`);
+      setRecipes(data);
+    } catch (e: any) {
+      Alert.alert('에러', e.message);
     } finally {
-      setRecipeLoading(false);
+      setLoading(false);
     }
+  };
+
+  // ========== 4) 매칭률 기반 레시피 검색 ==========
+  const fetchMatchRecipes = async () => {
+    if (!ingredients.trim()) {
+      Alert.alert('입력 오류', '재료를 입력해주세요.');
+      return;
+    }
+    setLoading(true);
+    setShowMatch(true);
+
+    try {
+      const requestBody = {
+        ingredients: ingredients.split(',').map((i) => i.trim()),
+        allergies,
+        cuisine: selectedCuisine,
+        dietary: dietary.length > 0 ? dietary[0].apiValue : null,
+      };
+
+      const res = await fetch(`${BACKEND_URL}/get_recipes_by_percent/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      console.log("🐶 fetchMatchRecipes 응답 data:", data);
+      if (data.error) throw new Error(data.error);
+
+      setMatchRecipes(data);
+    } catch (e: any) {
+      Alert.alert('에러', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== 5) 퍼센트 색상 결정 함수 ==========
+  const getColor = (percent: string) => {
+    const val = parseInt(percent);
+    if (val >= 100) return '#34A853';
+    if (val >= 80) return '#FBBC05';
+    if (val >= 50) return '#F39C12';
+    return '#EA4335';
+  };
+
+  // 로딩 중이면 간단히 로딩 스피너만 보여줌
+  if (prefsLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#FF6B00" />
+        <Text>설정 불러오는 중…</Text>
+      </View>
+    );
   }
 
   return (
-    <ScrollView>
-      <Text style={styles.title}>🍽️ 이색 레시피 추천기</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* 뒤로가기 버튼 */}
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={28} color="#5B2C20" />
+        </TouchableOpacity>
 
-      {/* 선택된 재료 표시 */}
-      {searchIngredients && (
-        <View style={styles.ingredientsInfo}>
-          <Text style={styles.ingredientsTitle}>🥘 선택한 재료</Text>
-          <Text style={styles.ingredientsText}>
-            {searchIngredients.split(',').map(ingredient => ingredient.trim()).join(', ')}
+        {/* 타이틀 */}
+        <Text style={styles.title}>🍽️ 레시피 추천기</Text>
+
+        {/* 선택된 재료 / 식단 / 알레르기 정보 영역 */}
+        {ingredients ? (
+          <Text style={styles.label}>
+            재료: <Text style={styles.highlight}>{ingredients}</Text>
           </Text>
-        </View>
-      )}
-
-      {dietary.length > 0 && (
-        <View style={styles.dietaryInfo}>
-          <Text style={styles.dietaryTitle}>🥗 선택된 식단</Text>
-          <Text style={styles.dietaryText}>
-            {dietary.map(d => d.name).join(', ')}
+        ) : null}
+        {selectedCuisine ? (
+          <Text style={styles.label}>
+            나라: <Text style={styles.highlight}>{selectedCuisine}</Text>
           </Text>
-        </View>
-      )}
+        ) : null}
+        {dietary.length > 0 ? (
+          <Text style={styles.label}>
+            식단: <Text style={styles.highlight}>{dietary.map((d) => d.name).join(', ')}</Text>
+          </Text>
+        ) : null}
+        {allergies ? (
+          <Text style={styles.label}>
+            알레르기: <Text style={styles.highlight}>{allergies}</Text>
+          </Text>
+        ) : null}
 
-      {allergies && (
-        <View style={styles.allergyInfo}>
-          <Text style={styles.allergyTitle}>⚠️ 제외될 알레르기 재료</Text>
-          <Text style={styles.allergyText}>{allergies}</Text>
-        </View>
-      )}
-  
-      <Text style={styles.label}>나라별 요리</Text>
-      <TouchableOpacity
-        style={styles.cuisineButton}
-        onPress={() => setShowCuisinePicker(true)}
-      >
-        <Text style={styles.cuisineButtonText}>
-          {selectedCuisine ? cuisines.find(c => c.value === selectedCuisine)?.label : '나라 선택하기'}
-        </Text>
-      </TouchableOpacity>
+        {/* 나라 선택 버튼 */}
+        <TouchableOpacity style={styles.button} onPress={() => setShowPicker(true)}>
+          <Text style={styles.buttonText}>나라 선택</Text>
+        </TouchableOpacity>
 
-      <Modal
-        visible={showCuisinePicker}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowCuisinePicker(false)}
-      >
-        <View style={styles.modalContainer}>
+        {/* 레시피 조회 버튼 */}
+        <TouchableOpacity style={styles.recommendBtn} onPress={fetchRecipes}>
+          <Text style={styles.recommendText}>일반 레시피 찾기</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.matchBtn} onPress={fetchMatchRecipes}>
+          <Text style={styles.recommendText}>매칭률 기반 추천</Text>
+        </TouchableOpacity>
+
+        {/* 로딩 스피너 */}
+        {loading && <ActivityIndicator size="large" color="#DC4F06" style={{ marginTop: 20 }} />}
+
+        {/* 일반 레시피 카드 리스트 */}
+        {!loading && !showMatch && recipes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📖 추천 레시피</Text>
+            {recipes.map((r, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.card}
+                onPress={() => router.push(`/recipe/${r.id}`)}
+              >
+                <Text style={styles.recipeTitle}>{r.title}</Text>
+                <View style={styles.recipeInfoContainer}>
+                  <Text style={styles.recipeInfoText}>⏱ 조리시간: {r.readyInMinutes}분</Text>
+                  <Text style={styles.recipeInfoText}>👥 인분: {r.servings}인분</Text>
+                </View>
+                <Text style={styles.ingredientsTitle}>🍊 사용된 재료:</Text>
+                <Text style={styles.ingredientsList}>
+                  {r.ingredients?.join(', ') || '재료 정보 없음'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 매칭률 기반 레시피 카드 리스트 */}
+        {!loading && showMatch &&
+          Object.entries(matchRecipes).map(
+            ([percent, items]) =>
+              Array.isArray(items) &&
+              items.length > 0 && (
+                <View key={percent} style={styles.section}>
+                  {/* percent가 "<30%"일 때는 “30% 미만 매칭”으로 표시 */}
+                  <Text style={styles.sectionTitle}>
+                    {percent === "<30%" ? "30% 미만 매칭" : `${percent} 매칭`}
+                  </Text>
+                  {items.map((r, i) => {
+                    // getColor 함수에 전달할 숫자만 추출 (예: "80%" → "80", "<30%" → "30")
+                    const numericPart = percent.replace(/[^0-9]/g, "");
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[
+                          styles.card,
+                          {
+                            borderLeftWidth: 5,
+                            borderLeftColor: getColor(numericPart),
+                          },
+                        ]}
+                        onPress={() => router.push(`/recipe/${r.id}`)}
+                      >
+                        <Text style={styles.recipeTitle}>{r.title}</Text>
+                        <View style={styles.recipeInfoContainer}>
+                          <Text style={styles.recipeInfoText}>
+                            ⏱ 조리시간: {r.readyInMinutes}분
+                          </Text>
+                          <Text style={styles.recipeInfoText}>
+                            👥 인분: {r.servings}인분
+                          </Text>
+                        </View>
+                        <Text style={styles.ingredientsTitle}>🍊 사용된 재료:</Text>
+                        <Text style={styles.ingredientsList}>
+                          {r.ingredients?.join(", ") || "재료 정보 없음"}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ),
+          )
+        }
+
+
+        {/* 결과가 없는 경우 */}
+        {!loading && !showMatch && recipes.length === 0 && (
+          <Text style={styles.noResults}>아직 레시피가 없어요. 다른 조건으로 검색해보세요!</Text>
+        )}
+      </ScrollView>
+
+      {/* 하단 탭 바 */}
+      <BottomTabBar />
+
+      {/* 나라 선택 모달 */}
+      <Modal visible={showPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>나라별 요리 선택</Text>
+            <Text style={styles.modalTitle}>나라 선택</Text>
             <FlatList
-              data={cuisines}
+              data={cuisineList}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.cuisineItem,
-                    selectedCuisine === item.value && styles.selectedCuisineItem
-                  ]}
+                  style={styles.modalItem}
                   onPress={() => {
                     setSelectedCuisine(item.value);
-                    setShowCuisinePicker(false);
+                    setShowPicker(false);
                   }}
                 >
-                  <Text style={[
-                    styles.cuisineItemText,
-                    selectedCuisine === item.value && styles.selectedCuisineText
-                  ]}>
-                    {item.label}
-                  </Text>
+                  <Text style={styles.modalItemText}>{item.label}</Text>
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCuisinePicker(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>닫기</Text>
+            <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.modalClose}>
+              <Text style={styles.modalCloseText}>닫기</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
-      <View style={styles.buttonContainer}>
-        <Button
-          title="일반 레시피 찾기"
-          onPress={fetchFilteredRecipes}
-          color="#FF6B00"
-          disabled={!searchIngredients.trim()}
-        />
-        <View style={{ height: 10 }} />
-        <Button
-          title="재료 매칭률로 찾기"
-          onPress={fetchPercentRecipes}
-          color="#FF8C00"
-          disabled={!searchIngredients.trim()}
-        />
-        <View style={{ height: 10 }} />
-        <Button
-          title="대체 재료 찾기"
-          onPress={fetchSubstitutes}
-          color="#FF9F45"
-          disabled={!searchIngredients.trim()}
-        />
-      </View>
-
-      {recipeLoading && showRecipes && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B00" />
-          <Text style={styles.loadingText}>레시피를 찾고 있어요...</Text>
-        </View>
-      )}
-
-      {substituteLoading && !showRecipes && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF8C00" />
-          <Text style={styles.loadingText}>대체 재료를 찾고 있어요...</Text>
-        </View>
-      )}
-
-      {!recipeLoading && showRecipes && !showPercentView && recipes.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📖 추천 레시피</Text>
-          {recipes.map((recipe, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.card}
-              onPress={() => handleRecipePress(recipe.id)}
-            >
-              <Text style={styles.recipeTitle}>{recipe.title}</Text>
-              <Text>⏱️ 조리시간: {recipe.readyInMinutes}분</Text>
-              <Text>👥 인분: {recipe.servings}인분</Text>
-              <Text style={styles.ingredientsTitle}>🥘 사용된 재료:</Text>
-              <Text style={styles.ingredientsList}>
-                {recipe.ingredients && recipe.ingredients.length > 0 
-                  ? recipe.ingredients.join(', ')
-                  : '재료 정보가 없습니다.'
-                }
-              </Text>
-              {recipe.instructions && (
-                <Text style={styles.instructions}>
-                  👩‍🍳 조리방법:{'\n'}{recipe.instructions}
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {!recipeLoading && showRecipes && showPercentView && Object.keys(percentRecipes).length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 재료 매칭률 기반 추천 레시피</Text>
-          {Object.entries(percentRecipes).map(([percent, recipes]) => 
-            recipes.length > 0 && (
-              <View key={percent} style={styles.percentSection}>
-                <Text style={styles.percentTitle}>{percent} 매칭</Text>
-                {recipes.map((recipe, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[styles.card, { borderLeftWidth: 4, borderLeftColor: getMatchColor(recipe.match_percentage) }]}
-                    onPress={() => handleRecipePress(recipe.id)}
-                  >
-                    <View style={styles.recipeTitleContainer}>
-                      <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                      <Text style={[styles.matchPercentage, { backgroundColor: getMatchColor(recipe.match_percentage, true) }]}>
-                        {recipe.match_percentage}
-                      </Text>
-                    </View>
-                    <View style={styles.recipeInfoContainer}>
-                      <Text style={styles.recipeInfoText}>⏱️ 조리시간: {recipe.readyInMinutes}분</Text>
-                      <Text style={styles.recipeInfoText}>👥 인분: {recipe.servings}인분</Text>
-                    </View>
-                    <Text style={styles.ingredientsTitle}>🥘 사용된 재료:</Text>
-                    <Text style={styles.ingredientsList}>
-                      {recipe.ingredients && recipe.ingredients.length > 0 
-                        ? recipe.ingredients.join(', ')
-                        : '재료 정보가 없습니다.'
-                      }
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )
-          )}
-        </View>
-      )}
-
-      {!substituteLoading && !showRecipes && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔄 대체 재료</Text>
-          {substitutes.length > 0 ? (
-            substitutes.map((sub, i) => (
-              <View key={i} style={styles.substituteCard}>
-                <Text style={styles.substituteText}>• {sub}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noResults}>대체 재료를 찾을 수 없어요.</Text>
-          )}
-        </View>
-      )}
-
-      {!recipeLoading && showRecipes && recipes.length === 0 && !Object.keys(percentRecipes).length && (
-        <Text style={styles.noResults}>
-          아직 레시피가 없어요. 다른 조건으로 검색해보세요!
-        </Text>
-      )}
-    </ScrollView>
+    </View>
   );
 }
 
-const getMatchColor = (percentage: string | undefined, isLight: boolean = false) => {
-  if (!percentage) return isLight ? '#E8F0FE' : '#4285F4';
-  const value = parseInt(percentage);
-  if (value >= 100) return isLight ? '#E6F4EA' : '#34A853';
-  if (value >= 80) return isLight ? '#FCE8E6' : '#EA4335';
-  if (value >= 50) return isLight ? '#FEF7E0' : '#FBBC04';
-  return isLight ? '#E8F0FE' : '#4285F4';
-};
-
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    backgroundColor: '#FFD6A5',  // 배경색 변경
-  },
-  container: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  title: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    marginBottom: 20, 
-    textAlign: 'center', 
-    color: '#813D2C'  // 제목 색상 변경
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#5B2C20',  // 라벨 색상 변경
-  },
-  input: { 
-    borderWidth: 1, 
-    borderColor: '#F29C50', 
-    padding: 10, 
-    borderRadius: 8, 
-    backgroundColor: '#FFEFD5',  // 입력창 배경색 변경
-    marginBottom: 20 
-  },
-  pickerContainer: {
+  container: { flex: 1, backgroundColor: '#FFD6A5' },
+  content: { padding: width * 0.06, paddingBottom: 100 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#5B2C20', marginBottom: 16 },
+  label: { fontSize: 16, color: '#5B2C20', marginBottom: 8 },
+  highlight: { color: '#DC4F06', fontWeight: '600' },
+  button: {
+    backgroundColor: '#FFEFD5',
     borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 20,
-    marginHorizontal: 10,
-  },
-  pickerIOS: {
-    height: 150,
-    width: '100%',
-  },
-  pickerAndroid: {
-    width: '100%',
-    height: 50,
-    color: '#000',
-  },
-  pickerItemAndroid: {
-    fontSize: 16,
-    color: '#000',
-  },
-  buttonContainer: {
-    marginBottom: 20,
-  },
-  loadingContainer: {
-    marginTop: 20,
+    borderColor: '#5B2C20',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginBottom: 16,
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 10,
-    color: '#888',
+  buttonText: { color: '#5B2C20', fontWeight: '500' },
+  recommendBtn: {
+    backgroundColor: '#5B2C20',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  section: { 
-    marginTop: 30 
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    marginBottom: 12,
-    backgroundColor: '#F29C50',  // 섹션 제목 배경색 추가
-    borderRadius: 30,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    color: '#fff',
-    alignSelf: 'center',
-  },
-  card: { 
-    backgroundColor: '#FFEFD5',  // 카드 배경색 변경
-    padding: 16, 
-    borderRadius: 12, 
-    marginBottom: 16, 
-    elevation: 2, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 4 
-  },
-  recipeTitle: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    marginBottom: 8, 
-    color: '#813D2C'  // 레시피 제목 색상 변경
-  },
-  instructions: { 
-    marginTop: 8, 
-    marginBottom: 8, 
-    lineHeight: 20,
-    color: '#5B2C20'  // 설명 텍스트 색상 변경
-  },
-  link: { color: '#1E90FF', marginTop: 8, textDecorationLine: 'underline' },
-  noResults: {
-    textAlign: 'center',
-    marginTop: 20,
-    color: '#5B2C20',
-    fontSize: 16,
-  },
-  substituteCard: {
-    backgroundColor: '#FFEFD5',  // 대체 재료 카드 배경색 변경
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  substituteText: {
-    fontSize: 16,
-    color: '#5B2C20',  // 대체 재료 텍스트 색상 변경
-    lineHeight: 24,
-  },
-  ingredientsInfo: {
-    backgroundColor: '#FFEFD5',
-    padding: 12,
-    borderRadius: 8,
+  matchBtn: {
+    backgroundColor: '#F57C00',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
     marginBottom: 20,
   },
-  ingredientsTitle: {
-    fontSize: 14,
+  recommendText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  card: {
+    backgroundColor: '#FFEFD5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  recipeTitle: { fontSize: 18, fontWeight: 'bold', color: '#5B2C20' },
+  recipeInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  recipeInfoText: { color: '#5B2C20', fontSize: 14 },
+  ingredientsTitle: { marginTop: 8, fontWeight: '600', color: '#813D2C' },
+  ingredientsList: { marginTop: 4, color: '#5B2C20', fontSize: 14, lineHeight: 20 },
+  section: { marginTop: 20 },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#813D2C',
-    marginBottom: 4,
+    backgroundColor: '#F29C50',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
+    borderRadius: 30,
+    marginBottom: 16,
   },
-  ingredientsText: {
-    color: '#5B2C20',
-    fontSize: 16,
-  },
-  allergyInfo: {
-    backgroundColor: '#FFEFD5',  // 알레르기 정보 배경색 변경
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  allergyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#813D2C',  // 알레르기 제목 색상 변경
-    marginBottom: 4,
-  },
-  allergyText: {
-    color: '#5B2C20',  // 알레르기 텍스트 색상 변경
-  },
-  dietaryInfo: {
-    backgroundColor: '#FFEFD5',  // 식단 정보 배경색 변경
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  dietaryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#813D2C',  // 식단 제목 색상 변경
-    marginBottom: 4,
-  },
-  dietaryText: {
-    color: '#5B2C20',  // 식단 텍스트 색상 변경
-  },
-  cuisineButton: {
-    backgroundColor: '#FFEFD5',  // 나라별 요리 버튼 배경색 변경
-    borderWidth: 1,
-    borderColor: '#F29C50',
-    borderRadius: 8,
-    padding: 15,
-    marginHorizontal: 10,
-    marginBottom: 20,
-  },
-  cuisineButtonText: {
-    fontSize: 16,
-    color: '#5B2C20',  // 나라별 요리 버튼 텍스트 색상 변경
-  },
-  modalContainer: {
+  noResults: { textAlign: 'center', marginTop: 20, color: '#5B2C20', fontSize: 16 },
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#FFEFD5',  // 모달 배경색 변경
-    borderRadius: 12,
+    backgroundColor: '#FFEFD5',
     padding: 20,
+    borderRadius: 12,
     width: '80%',
     maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-    textAlign: 'center',
-    color: '#813D2C',  // 모달 제목 색상 변경
-  },
-  cuisineItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F29C50',  // 구분선 색상 변경
-  },
-  selectedCuisineItem: {
-    backgroundColor: '#FFD6A5',  // 선택된 항목 배경색 변경
-  },
-  cuisineItemText: {
-    fontSize: 16,
-    color: '#5B2C20',  // 항목 텍스트 색상 변경
-  },
-  selectedCuisineText: {
-    color: '#813D2C',  // 선택된 항목 텍스트 색상 변경
-    fontWeight: '600',
-  },
-  modalCloseButton: {
-    marginTop: 15,
-    padding: 15,
-    backgroundColor: '#F2C078',  // 닫기 버튼 배경색 변경
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    color: '#5B2C20',  // 닫기 버튼 텍스트 색상 변경
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  percentSection: {
-    marginBottom: 20,
-  },
-  percentTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#813D2C',  // 퍼센트 제목 색상 변경
-    marginBottom: 10,
-    backgroundColor: '#FFD6A5',  // 퍼센트 제목 배경색 변경
-    padding: 8,
-    borderRadius: 8,
-  },
-  recipeTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  recipeInfoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 8,
-  },
-  recipeInfoText: {
-    fontSize: 14,
-    color: '#5B2C20',  // 레시피 정보 텍스트 색상 변경
-  },
-  matchPercentage: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#813D2C',  // 매칭률 텍스트 색상 변경
-    backgroundColor: '#FFD6A5',  // 매칭률 배경색 변경
-    padding: 4,
-    borderRadius: 4,
-  },
-  ingredientsList: {
+    fontWeight: 'bold',
     color: '#5B2C20',
-    lineHeight: 20,
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  modalItem: { paddingVertical: 12 },
+  modalItemText: { fontSize: 16, color: '#5B2C20' },
+  modalClose: {
+    marginTop: 12,
+    backgroundColor: '#DC4F06',
+    borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#FFD6A5',
+    paddingVertical: 10,
   },
+  modalCloseText: { color: '#fff', fontWeight: '600' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFD6A5' },
 });
+

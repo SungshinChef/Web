@@ -31,8 +31,8 @@ origins = [
     "exp://172.30.1.25:19000", # Expo 개발 서버
     "http://172.30.1.25:19000",
     "http://172.30.1.25:19006",
-    "http://192.168.0.101:8000", # 현재 사용자 IP 주소
     "http://localhost:8081",
+    "http://0.0.0.0:8000",
     "*"  # 개발 중에는 모든 origin 허용
 ]
 
@@ -414,12 +414,19 @@ async def get_recipes_by_percent(request: IngredientsRequest):
         if dietary:
              is_vegetarian = recipe_detail.get("vegetarian", False) # 상세 정보에 필드 추가 가정
              is_vegan = recipe_detail.get("vegan", False) # 상세 정보에 필드 추가 가정
+             is_gluten_free = recipe_detail.get("gluten free", False) # 상세 정보에 필드 추가 가정
+             is_ketogenic = recipe_detail.get("ketogenic", False) # 상세 정보에 필드 추가 가정
 
-             if dietary.lower() == "vegetarian" and not is_vegetarian:
-                  return None
-             if dietary.lower() == "vegan" and not is_vegan:
-                   return None
-             # 다른 식단 옵션 추가 필요
+             dietary_list = [d.strip().lower() for d in dietary.split(",")]
+             for diet_opt in dietary_list:
+                 if diet_opt == "vegetarian" and not is_vegetarian:
+                     return None
+                 if diet_opt == "vegan" and not is_vegan:
+                     return None
+                 if diet_opt == "gluten free" and not is_gluten_free:
+                     return None
+                 if diet_opt == "ketogenic" and not is_ketogenic:
+                     return None
 
         # 나라별 요리 필터링 (Spoonacular 상세 정보의 cuisines 필드 사용)
         if cuisine:
@@ -465,7 +472,8 @@ async def get_recipes_by_percent(request: IngredientsRequest):
         "100%": [],
         "80%": [],
         "50%": [],
-        "30%": []
+        "30%": [],
+        "<30%": []
     }
 
     for recipe in filtered_recipes:
@@ -479,6 +487,8 @@ async def get_recipes_by_percent(request: IngredientsRequest):
             category = "50%"
         elif match_score >= 0.3:
             category = "30%"
+        else:
+            category = "<30%"
 
         if category and len(categorized_recipes[category]) < 5:
             del recipe["match_score"]  # 임시로 사용한 match_score 제거

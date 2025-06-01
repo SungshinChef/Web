@@ -91,9 +91,9 @@ export default function RecipeDetailScreen() {
   // BACKEND_URL 설정
   const BACKEND_URL = __DEV__
   ? Platform.select({
-      ios: 'http://192.168.0.101:8000', // 실제 백엔드 IP로 변경
-      android: 'http://192.168.0.101:8000', // 실제 백엔드 IP로 변경
-      default: 'http://192.168.0.101:8000' // 실제 백엔드 IP로 변경
+      ios: 'http://127.0.0.1:8000', // 실제 백엔드 IP로 변경
+      android: 'http://127.0.0.1:8000', // 실제 백엔드 IP로 변경
+      default: 'http://127.0.0.1:8000' // 실제 백엔드 IP로 변경
     })
   : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
 
