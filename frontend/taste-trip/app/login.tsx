@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,6 @@ import { useFonts, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import { GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from "@env";
-
 WebBrowser.maybeCompleteAuthSession();
 
 const BACKEND_URL = Platform.OS === 'web'
@@ -27,15 +25,23 @@ const BACKEND_URL = Platform.OS === 'web'
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
-    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
-    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
-    scopes: ['openid', 'profile', 'email'], 
+    clientId: "",
+    iosClientId: "",
+    androidClientId: "",
+    scopes: ['openid', 'profile', 'email'],
     responseType: ResponseType.IdToken,
-    redirectUri: makeRedirectUri(),
+    redirectUri: makeRedirectUri({ useProxy: true }),
   });
 
   const { setUserId } = useAuth();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
+    await promptAsync();
+    setIsLoggingIn(false);
+  };
 
   useEffect(() => {
     const handleLogin = async () => {
@@ -49,11 +55,11 @@ export default function LoginScreen() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: idToken }),
         });
+
         const data = await res.json();
         console.log('서버 응답:', data);
 
         if (data.user && data.user.id) {
-          // 1) 로그인 정보 저장 (nickname 포함)
           const userInfo = {
             id: data.user.id,
             email: data.user.email,
@@ -61,11 +67,11 @@ export default function LoginScreen() {
           };
           await AsyncStorage.setItem('user', JSON.stringify(userInfo));
           await AsyncStorage.setItem('idToken', idToken);
+          await AsyncStorage.setItem('user_id', userInfo.id);
 
           console.log('✅ 로그인 성공. userId 저장:', userInfo.id);
           if (setUserId) setUserId(userInfo.id);
 
-          // 2) 설정 화면으로 이동
           router.push('/select');
         } else {
           Alert.alert('로그인 실패', JSON.stringify(data));
@@ -78,10 +84,6 @@ export default function LoginScreen() {
 
     handleLogin();
   }, [response]);
-
-  const handleGoogleLogin = () => {
-    promptAsync();
-  };
 
   if (!fontsLoaded) return null;
 
@@ -98,7 +100,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={styles.googleButton}
           onPress={handleGoogleLogin}
-          disabled={!request}
+          disabled={!request || isLoggingIn}
         >
           <Image
             source={{

@@ -4,6 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { FontAwesome } from '@expo/vector-icons';
+import { supabase } from '../../lib/supabase';
+
 
 interface Recipe {
   id: number;
@@ -20,8 +23,8 @@ interface Recipe {
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
-  const { id, ownedIngredients: ownedIngredientsParam } = useLocalSearchParams();
-  const { userId } = useAuth();
+  const { id, ownedIngredients: ownedIngredientsParam, routeFrom } = useLocalSearchParams();  const { userId } = useAuth();
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // --- 디버깅 로그 추가 (1) ---
   console.log('🔍 RecipeDetailScreen - received params:', { id, ownedIngredientsParam });
@@ -98,8 +101,69 @@ export default function RecipeDetailScreen() {
   : 'https://your-production-backend-url.com'; // 실제 프로덕션 URL로 변경 필요
 
   useEffect(() => {
-    fetchRecipeDetails();
-  }, [id]);
+    const fetchRecipeDetailAndFavoriteStatus = async () => {
+      try {
+        console.log('👉 fetch 시작:', id);
+  
+        // 1. 레시피 상세 정보 요청
+        const res = await fetch(`${BACKEND_URL}/get_recipe_detail/?id=${id}`);
+        const data = await res.json();
+        console.log('✅ 받은 데이터:', data);
+  
+        setRecipe(data);
+  
+        // 2. 즐겨찾기 상태 확인
+        if (!userId) return;
+  
+        const { data: favoriteData, error } = await supabase
+          .from('favorites')
+          .select('recipe_id')
+          .eq('user_id', userId)
+          .eq('recipe_id', Number(id));
+  
+        if (error) throw error;
+  
+        setIsFavorite(favoriteData.length > 0);
+      } catch (err) {
+        console.error('❌ 레시피 상세 또는 즐겨찾기 확인 실패:', err);
+      } finally {
+        setLoading(false); // ✅ 무조건 로딩 종료되도록 finally 블록 추가
+      }
+    };
+  
+    if (id) {
+      fetchRecipeDetailAndFavoriteStatus();
+    }
+  }, [id, userId]);
+  
+  
+
+  
+  const toggleFavorite = async () => {
+    if (!userId) return;
+
+  try {
+    if (isFavorite) {
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('recipe_id', Number(id));
+
+      if (error) throw error;
+      setIsFavorite(false);
+    } else {
+      const { error } = await supabase
+        .from('favorites')
+        .insert([{ user_id: userId, recipe_id: Number(id) }]);
+
+      if (error) throw error;
+      setIsFavorite(true);
+    }
+  } catch (err) {
+    console.error('Supabase 즐겨찾기 토글 실패:', err);
+  }
+};
 
   // --- 재료 번역 및 정렬 함수 ---
   const translateAndSortIngredients = async (ingredientsList: string[], ownedIngs: string[]) => {
@@ -292,11 +356,22 @@ export default function RecipeDetailScreen() {
     <ScrollView style={styles.container}>
       {/* 뒤로가기 버튼 */}
       <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="chevron-back" size={28} color="#5B2C20" />
-      </TouchableOpacity>
+  style={styles.backButton}
+  onPress={() => {
+    if (routeFrom === 'function') {
+      router.push('/function');
+    } else if (routeFrom === 'favorites') {
+      router.push({
+        pathname: '/(tabs)/favorite',
+      });
+    } else {
+      router.back(); // fallback
+    }
+  }}
+>
+  <Ionicons name="chevron-back" size={28} color="#5B2C20" />
+</TouchableOpacity>
+
 
       {/* 레시피 이미지 */}
       {recipe.image && (
@@ -311,6 +386,12 @@ export default function RecipeDetailScreen() {
 
       {/* 레시피 제목 */}
       <Text style={styles.title}>{recipe.title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 8 }}>
+      <Text style={styles.title}>{recipe.title}</Text>
+    <TouchableOpacity onPress={toggleFavorite} style={{ marginLeft: 5, marginTop: -4 }}>
+      <FontAwesome name={isFavorite ? 'star' : 'star-o'} size={24} color="#DC4F06" />
+    </TouchableOpacity>
+    </View>
       {recipe.title_kr && (
         <Text style={styles.koreanTitle}>{recipe.title_kr}</Text>
       )}

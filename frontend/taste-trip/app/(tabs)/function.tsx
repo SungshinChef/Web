@@ -273,7 +273,7 @@ export default function FunctionScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* 뒤로가기 버튼 */}
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.push('/ingredient')}>
           <Ionicons name="chevron-back" size={28} color="#5B2C20" />
         </TouchableOpacity>
 
@@ -327,8 +327,17 @@ export default function FunctionScreen() {
               <TouchableOpacity
                 key={i}
                 style={styles.card}
-                onPress={() => router.push(`/recipe/${r.id}`)}
-              >
+                onPress={() =>
+                  router.push({
+                    pathname: '/recipe/[id]',
+                    params: {
+                      id: r.id.toString(),
+                      ownedIngredients: ingredients, // 이미 상태값으로 있음
+                      routeFrom: 'function',
+                    },
+                  })
+                }
+                              >
                 <Text style={styles.recipeTitle}>{r.title}</Text>
                 <View style={styles.recipeInfoContainer}>
                   <Text style={styles.recipeInfoText}>⏱ 조리시간: {r.readyInMinutes}분</Text>
@@ -367,8 +376,17 @@ export default function FunctionScreen() {
                             borderLeftColor: getColor(numericPart),
                           },
                         ]}
-                        onPress={() => router.push(`/recipe/${r.id}`)}
-                      >
+                        onPress={() =>
+                          router.push({
+                            pathname: '/recipe/[id]',
+                            params: {
+                              id: r.id.toString(),
+                              ownedIngredients: ingredients, // 이미 상태값으로 있음
+                              routeFrom: 'function',
+                            },
+                          })
+                        }
+                                              >
                         <Text style={styles.recipeTitle}>{r.title}</Text>
                         <View style={styles.recipeInfoContainer}>
                           <Text style={styles.recipeInfoText}>

@@ -38,10 +38,10 @@ export default function BottomTabBar() {
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.tabButton} 
-        onPress={() => handleNavigation('/substitute')}
+        onPress={() => handleNavigation('/favorite')}
       >
         <Image 
-          source={require('../assets/substitute_logo.png')}
+          source={require('../assets/favorite_logo.png')}
           style={getIconStyle('/substitute')} 
         />
       </TouchableOpacity>

@@ -645,3 +645,53 @@ async def translate_ingredients_list(request: IngredientsRequest):
         translated = await translate_with_deepl_async(ingredient, target_lang="en")
         translated_ingredients.append({"original": ingredient, "translated": translated})
     return {"translations": translated_ingredients}
+
+from pydantic import BaseModel
+
+class FavoriteRequest(BaseModel):
+    user_id: str
+    recipe_id: int
+    recipe_title: str
+    recipe_image: str
+
+@app.post("/api/favorites")
+def add_favorite(req: FavoriteRequest):
+    supabase.table("favorites").insert({
+        "user_id": req.user_id,
+        "recipe_id": req.recipe_id,
+        "recipe_title": req.recipe_title,
+        "recipe_image": req.recipe_image
+    }).execute()
+    return {"message": "즐겨찾기 추가 완료"}
+
+@app.get("/api/favorites/{user_id}")
+def get_favorites(user_id: str):
+    result = supabase.table("favorites").select("*").eq("user_id", user_id).execute()
+    return result.data
+
+from fastapi.responses import JSONResponse
+
+@app.post("/get_multiple_recipe_details/")
+async def get_multiple_recipe_details(recipe_ids: List[int]):
+    results = []
+
+    for rid in recipe_ids:
+        recipe = await get_recipe_detail_async(rid)  # ✅ 비동기 함수 호출
+
+        if not isinstance(recipe, dict):
+            continue  # 오류 응답은 건너뛰기
+
+        recipe_data = {
+            "id": rid,
+            "title": recipe.get("title"),
+            "title_kr": recipe.get("title_kr"),
+            "summary": recipe.get("summary"),
+            "instructions": recipe.get("instructions", ""),
+            "ingredients": recipe.get("ingredients", []),
+            "image": recipe.get("image"),
+            "readyInMinutes": recipe.get("readyInMinutes"),
+            "servings": recipe.get("servings"),
+        }
+        results.append(recipe_data)
+
+    return JSONResponse(content=results)
