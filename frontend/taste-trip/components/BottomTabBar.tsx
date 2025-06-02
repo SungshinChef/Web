@@ -42,7 +42,7 @@ export default function BottomTabBar() {
       >
         <Image 
           source={require('../assets/favorite_logo.png')}
-          style={getIconStyle('/substitute')} 
+          style={getIconStyle('/favorite')} 
         />
       </TouchableOpacity>
       <TouchableOpacity 
