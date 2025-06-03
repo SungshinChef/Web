@@ -56,6 +56,10 @@ A personalized recipe recommendation app that helps users discover recipes based
    ```
    SPOONACULAR_API_KEY=your_api_key
    DEEPL_API_KEY=your_api_key
+   GOOGLE_CLIENT_ID=
+   SUPABASE_URL=
+   SUPABASE_KEY=
+   DATABASE_URL=
    ```
 4. Start the backend server
    ```bash
