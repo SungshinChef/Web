@@ -7,13 +7,14 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function BottomTabBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const handleNavigation = (route: string) => {
-    router.push(route);
+    router.push(route as any);
   };
 
   const getIconStyle = (route: string) => {
@@ -32,16 +33,16 @@ export default function BottomTabBar() {
       >
         <Image 
           source={require('../assets/recommend_logo.png')} 
-          style={getIconStyle('/main')} 
+          style={getIconStyle('/main')}  
         />
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.tabButton} 
-        onPress={() => handleNavigation('/substitute')}
+        onPress={() => handleNavigation('/favorite')}
       >
         <Image 
-          source={require('../assets/substitute_logo.png')} 
-          style={getIconStyle('/substitute')} 
+          source={require('../assets/favorite_logo.png')}
+          style={getIconStyle('/favorite')} 
         />
       </TouchableOpacity>
       <TouchableOpacity 

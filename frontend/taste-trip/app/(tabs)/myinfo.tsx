@@ -68,9 +68,9 @@ export default function MyPageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF6ED' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFD6A5' },
   profileCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFEFD5',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     width: 320,
   },
   nickname: { fontSize: 22, fontWeight: 'bold', color: '#813D2C', marginBottom: 6 },
-  email: { fontSize: 16, color: '#5B2C20', marginBottom: 2 },
+  email: { fontSize: 16, color: '#813D2C', marginBottom: 2 },
   menuSection: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 30,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFEFD5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  menuText: { color: '#5B2C20', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  menuText: { color: '#813D2C', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
 });
