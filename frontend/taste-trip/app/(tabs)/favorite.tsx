@@ -15,7 +15,6 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { BACKEND_URL } from '../../lib/constants';
 
-
 interface Recipe {
   id: number;
   title: string;
@@ -40,7 +39,6 @@ export default function FavoritesScreen() {
         try {
           if (!userId) return;
 
-          // 1. Supabase에서 즐겨찾기된 recipe_id만 가져오기
           const { data: favoriteRows, error } = await supabase
             .from('favorites')
             .select('recipe_id')
@@ -54,20 +52,14 @@ export default function FavoritesScreen() {
             return;
           }
 
-          // 2. 백엔드에 recipeIds를 POST로 보내고 상세 정보 받아오기
           const detailRes = await fetch(`${BACKEND_URL}/get_multiple_recipe_details/`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(recipeIds),
           });
 
           const rawResponse = await detailRes.text();
-          console.log('📦 백엔드 응답 원본 (string):', rawResponse);
           const detailedRecipes = JSON.parse(rawResponse);
-
-          //const detailedRecipes = await detailRes.json();
           setFavorites(detailedRecipes);
         } catch (err) {
           console.error('❌ 즐겨찾기 불러오기 실패:', err);
@@ -79,44 +71,52 @@ export default function FavoritesScreen() {
   );
 
   const goToRecipeDetail = (recipe: Recipe) => {
-    if (recipe?.id === undefined || recipe.id === null) {
-      console.error('❌ recipe.id is undefined:', recipe);
-      return;
-    }
-
+    if (recipe?.id === undefined) return;
     router.push({
       pathname: '/recipe/[id]',
       params: {
         id: recipe.id.toString(),
         ownedIngredients: '',
-        routeFrom: 'favorites'
+        routeFrom: 'favorites',
       },
     });
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.push('/main')} style={styles.backButton}>
-        <Ionicons name="chevron-back" size={24} color="#5B2C20" />
-      </TouchableOpacity>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => router.push('/main')}>
+          <Ionicons name="chevron-back" size={30} color="#5B2C20" />
+        </TouchableOpacity>
+        <Text style={styles.header}>즐겨찾기</Text>
+      </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={styles.header}> 즐겨찾기</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
         {favorites.length === 0 ? (
-          <Text style={styles.noFavorites}>아직 즐겨찾기한 레시피가 없습니다.</Text>
+          <Text style={styles.noFavorites}>
+            아직 레시피가 없습니다.{"\n"}마음에 드는 레시피를 저장해 보세요!
+          </Text>
         ) : (
           favorites.map((recipe, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.recipeItem}
+              style={styles.recipeRow}
               onPress={() => goToRecipeDetail(recipe)}
             >
-              <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-              <View style={styles.recipeText}>
-                <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                {recipe.title_kr && (
-                  <Text style={styles.recipeTitleKr}>{recipe.title_kr}</Text>
-                )}
+              {/* ✅ 동그라미 번호 */}
+              <View style={styles.circleNumber}>
+                <Text style={styles.circleNumberText}>{index + 1}</Text>
+              </View>
+
+              {/* 레시피 카드 */}
+              <View style={styles.recipeItem}>
+                <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                <View style={styles.recipeText}>
+                  <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                  {recipe.title_kr && (
+                    <Text style={styles.recipeTitleKr}>{recipe.title_kr}</Text>
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           ))
@@ -133,49 +133,75 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 30,
     paddingHorizontal: 16,
   },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
-    left: 16,
-    zIndex: 100,
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
   },
   header: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#5B2C20',
-    marginBottom: 20,
-    marginTop: 10,
-    marginLeft: 40, // ✅ 제목 오른쪽으로 이동시켜 겹침 방지
-
+    marginLeft: 12,
+  },
+  scrollContainer: {
+    paddingBottom: 40,
   },
   noFavorites: {
     fontSize: 16,
     color: '#5B2C20',
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 80,
+    lineHeight: 24,
+  },
+  recipeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  circleNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 	'#5B2C20', 
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  circleNumberText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   recipeItem: {
+    flex: 1,
     flexDirection: 'row',
-    marginBottom: 16,
     backgroundColor: '#FFEFD5',
-    borderRadius: 8,
-    overflow: 'hidden',
+    borderRadius: 16,
     borderColor: '#B88655',
     borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   recipeImage: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   recipeText: {
     flex: 1,
-    padding: 10,
+    padding: 12,
     justifyContent: 'center',
   },
   recipeTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#813D2C',
+    fontWeight: 'bold',
+    color: '#5B2C20',
   },
   recipeTitleKr: {
     fontSize: 14,
