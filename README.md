@@ -23,12 +23,17 @@ A personalized recipe recommendation app that helps users discover recipes based
   - React Native (Expo)
   - TypeScript
   - React Navigation
+  - Docker
 
 - **Backend**
   - FastAPI
   - Python
   - Spoonacular API (Recipe Data)
   - DeepL API (Translation)
+  - Docker
+
+- **Deployment**
+  - Docker Compose
 
 ## 👥 Team Members
 
@@ -38,35 +43,31 @@ A personalized recipe recommendation app that helps users discover recipes based
 
 ## 🚀 Getting Started
 
-1. Clone the repository
-2. **Install Dependencies**
+To run this project using Docker Compose, follow these steps:
 
-   - **Backend:** Navigate to the `backend` directory and install Python dependencies:
-       ```bash
-       cd backend
-       pip install -r requirements.txt # assuming requirements.txt exists
-       ```
-   - **Frontend:** Navigate to the `frontend/taste-trip` directory and install Node.js dependencies:
-       ```bash
-       cd ../frontend/taste-trip
-       npm install # or yarn install
-       ```
+1.  Clone the repository:
+    ```bash
+    git clone <repository_url>
+    cd Web # Or the root directory of the cloned repository
+    ```
 
-3. Set up environment variables
-   ```
-   SPOONACULAR_API_KEY=your_api_key
-   DEEPL_API_KEY=your_api_key
-   ```
-4. Start the backend server
-   ```bash
-   cd backend
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
-   ```
-5. Start the frontend
-   ```bash
-   cd frontend/taste-trip
-   npx expo start
-   ```
+2.  **Set up Environment Variables:**
+    Create a `.env` file in the project root directory (where `docker-compose.yml` is located). Copy the contents of `.env.example` into `.env` and fill in your actual API keys and database credentials.
+
+    ```bash
+    cp .env.example .env
+    # Open .env in your editor and fill in the values
+    ```
+    **Make sure your `.env` file is not committed to Git by checking `.gitignore`.**
+
+3.  **Build and Run with Docker Compose:**
+    Ensure you have Docker and Docker Compose installed. Then, run the following command in the project root directory:
+
+    ```bash
+    docker-compose up --build
+    ```
+
+    This command will build the Docker images for the backend and frontend services (if they haven't been built yet or if Dockerfiles have changed) and start the containers. The frontend (Expo) should be accessible via the Expo Go app or web browser.
 
 ## 📱 Screenshots
 
