@@ -22,15 +22,21 @@ const BACKEND_URL = Platform.OS === 'web'
   ? 'http://localhost:8000'
   : 'http://192.168.0.101:8000';
 
+// 환경 변수에서 Google Client ID 가져오기
+const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+
+
 export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Poppins_600SemiBold });
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "962992958749-lhuole68gf1l2o02lponigvfb3h7heen.apps.googleusercontent.com",
-    iosClientId: "962992958749-afuajrmbr9ihrv2viemf0312fm0m6f8g.apps.googleusercontent.com",
-    androidClientId: "962992958749-lbrbh0tdbu9mfp1l2cs7a1726ld9viff.apps.googleusercontent.com",
+    clientId: googleClientId, // 환경 변수 사용
+    iosClientId: googleIosClientId,
+    androidClientId: googleAndroidClientId,
     scopes: ['openid', 'profile', 'email'],
     responseType: ResponseType.IdToken,
-    redirectUri: makeRedirectUri({ useProxy: true }),
+    redirectUri: makeRedirectUri({}), // useProxy: true 제거하여 에러 해결
   });
 
   const { setUserId } = useAuth();

@@ -17,48 +17,35 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import BottomTabBar from '../../components/BottomTabBar';
+import { useRecipeFilter } from '../../context/RecipeFilterContext';
+import { Recipe, DietaryOption } from '../../types';
 
 const { width } = Dimensions.get('window');
-
-interface Recipe {
-  id: number;
-  title: string;
-  title_kr?: string;
-  ingredients: string[];
-  readyInMinutes: number;
-  servings: number;
-  match_percentage?: string;
-}
-
-interface DietaryOption {
-  name: string;
-  apiValue: string;
-}
 
 export default function FunctionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // 초기 재료는 params에서, 없으면 AsyncStorage에서
-  const initParamIngredients = (params.ingredients as string) ?? '';
-  const [ingredients, setIngredients] = useState<string>(initParamIngredients);
+  const { 
+    ingredients: contextIngredients,
+    setIngredients: setContextIngredients, 
+    country,
+    setCountry,
+    recipes, 
+    setRecipes, 
+    matchRecipes, 
+    setMatchRecipes 
+  } = useRecipeFilter();
 
-  // 사용자 식단/알레르기 정보
   const [dietary, setDietary] = useState<DietaryOption[]>([]);
   const [allergies, setAllergies] = useState<string>('');
   const [prefsLoading, setPrefsLoading] = useState<boolean>(true);
 
-  // 레시피 상태
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [matchRecipes, setMatchRecipes] = useState<{ [key: string]: Recipe[] }>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [showMatch, setShowMatch] = useState<boolean>(false);
 
-  // 나라 선택 상태
-  const [selectedCuisine, setSelectedCuisine] = useState<string>('');
   const [showPicker, setShowPicker] = useState<boolean>(false);
 
-  // 백엔드 URL (개발 모드 / 프로덕션 모드)
   const BACKEND_URL = __DEV__
     ? Platform.select({
         ios: 'http://127.0.0.1:8000',
@@ -67,123 +54,156 @@ export default function FunctionScreen() {
       })
     : 'https://your-production-backend-url.com';
 
-  // 나라 목록
   const cuisineList = [
     { label: '선택 안함', value: '' },
-    { label: '아프리카 요리', value: 'African' },
-    { label: '미국 요리', value: 'American' },
-    { label: '영국 요리', value: 'British' },
+    { label: '아프리카', value: 'African' },
+    { label: '미국', value: 'American' },
+    { label: '영국', value: 'British' },
     { label: '케이준', value: 'Cajun' },
     { label: '카리브해', value: 'Caribbean' },
-    { label: '중국 요리', value: 'Chinese' },
-    { label: '동유럽 요리', value: 'Eastern European' },
-    { label: '유럽 전반', value: 'European' },
-    { label: '프랑스 요리', value: 'French' },
-    { label: '독일 요리', value: 'German' },
-    { label: '그리스 요리', value: 'Greek' },
-    { label: '인도 요리', value: 'Indian' },
-    { label: '아일랜드 요리', value: 'Irish' },
-    { label: '이탈리아 요리', value: 'Italian' },
-    { label: '일본 요리', value: 'Japanese' },
-    { label: '유대 요리', value: 'Jewish' },
-    { label: '한국 요리', value: 'Korean' },
+    { label: '중국', value: 'Chinese' },
+    { label: '동유럽', value: 'Eastern European' },
+    { label: '유럽', value: 'European' },
+    { label: '프랑스', value: 'French' },
+    { label: '독일', value: 'German' },
+    { label: '그리스', value: 'Greek' },
+    { label: '인도', value: 'Indian' },
+    { label: '아일랜드', value: 'Irish' },
+    { label: '이탈리아', value: 'Italian' },
+    { label: '일본', value: 'Japanese' },
+    { label: '유대', value: 'Jewish' },
+    { label: '한국', value: 'Korean' },
     { label: '라틴 아메리카', value: 'Latin American' },
-    { label: '지중해 요리', value: 'Mediterranean' },
-    { label: '멕시코 요리', value: 'Mexican' },
-    { label: '중동 요리', value: 'Middle Eastern' },
-    { label: '북유럽 요리', value: 'Nordic' },
+    { label: '지중해', value: 'Mediterranean' },
+    { label: '멕시코', value: 'Mexican' },
+    { label: '중동', value: 'Middle Eastern' },
+    { label: '북유럽', value: 'Nordic' },
     { label: '남부 미국', value: 'Southern' },
-    { label: '스페인 요리', value: 'Spanish' },
-    { label: '태국 요리', value: 'Thai' },
-    { label: '베트남 요리', value: 'Vietnamese' },
+    { label: '스페인', value: 'Spanish' },
+    { label: '태국', value: 'Thai' },
+    { label: '베트남', value: 'Vietnamese' },
   ];
 
-  // ========== 1) 사용자 정보 (식단/알레르기) 로딩 ==========
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        // 1) AsyncStorage에서 user, diet, allergies, ingredients 불러오기
         const userJson = await AsyncStorage.getItem('user');
         const token = await AsyncStorage.getItem('idToken');
 
-        // 로그인 정보 없으면 로그인 화면으로 리다이렉트
         if (!userJson || !token) {
           router.replace('/login');
           return;
         }
         const user = JSON.parse(userJson);
 
-        // 로컬 저장된 식단/알레르기 먼저 세팅
-        const storedDiet = await AsyncStorage.getItem('diet');
+        const storedDietJson = await AsyncStorage.getItem('diet');
         const storedAllergies = await AsyncStorage.getItem('allergies');
 
         if (isMounted) {
-          setDietary(storedDiet ? JSON.parse(storedDiet) : []);
+          if (storedDietJson) {
+            try {
+              const parsedDiet = JSON.parse(storedDietJson);
+              if (Array.isArray(parsedDiet)) {
+                setDietary(parsedDiet);
+              } else {
+                console.warn('Stored dietary data is not an array:', parsedDiet);
+                setDietary([]);
+              }
+            } catch (e) {
+              console.error('Failed to parse stored dietary data:', e);
+              setDietary([]);
+            }
+          } else {
+            setDietary([]);
+          }
+
           setAllergies(storedAllergies || '');
           setPrefsLoading(false);
+
+          if (params.ingredients && typeof params.ingredients === 'string') {
+              setContextIngredients(params.ingredients.split(',').map((i: string) => i.trim()));
+          }
         }
 
-        // 2) 백그라운드로 서버에서 최신 preferences 받아오기
         const res = await fetch(`${BACKEND_URL}/api/preferences/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
+          console.log("API 응답 전체 데이터:", data);
+          console.log("API 응답 식단 데이터 (data.diet):", data.diet);
           const latestDiet = data.diet;
-          const latestAlgs = data.allergies;
-
-          // AsyncStorage에 갱신
-          if (latestDiet) await AsyncStorage.setItem('diet', latestDiet);
-          if (latestAlgs) await AsyncStorage.setItem('allergies', latestAlgs);
-
-          if (isMounted) {
-            setDietary(latestDiet ? JSON.parse(latestDiet) : []);
-            setAllergies(latestAlgs || '');
+        
+          // ❷ data.diet가 문자열일 경우 파싱 시도
+          let parsedDiet: DietaryOption[] = [];
+          if (data.diet) {
+            try {
+              // 백엔드에서 diet를 그대로 string으로 보내면 JSON.parse 필요
+              parsedDiet =
+                typeof data.diet === 'string'
+                  ? JSON.parse(data.diet)
+                  : data.diet;
+            } catch (e) {
+              console.warn('Failed to parse diet from API:', e);
+              parsedDiet = [];
+            }
           }
+        
+          if (Array.isArray(parsedDiet)) {
+            setDietary(parsedDiet);
+            await AsyncStorage.setItem('diet', JSON.stringify(parsedDiet));
+          } else {
+            console.warn('Parsed diet is not an array:', parsedDiet);
+            setDietary([]);
+            await AsyncStorage.setItem('diet', JSON.stringify([]));
+          }
+        
+          // ❸ data.allergies는 문자열(콤마로 구분된 텍스트) 형태로 보낸다 가정
+          const latestAlgs = data.allergies;
+          if (latestAlgs !== undefined && latestAlgs !== null) {
+            setAllergies(latestAlgs || '');
+            await AsyncStorage.setItem('allergies', latestAlgs || '');
+          } else {
+            console.warn('Latest allergies data from API is missing or undefined');
+            setAllergies('');
+            await AsyncStorage.setItem('allergies', '');
+          }
+        } else {
+          console.warn('Failed to fetch latest preferences from server', res.status);
         }
+        
       } catch (e) {
-        // 에러 발생 시 기본값으로 세팅
+        console.error("Failed to load user prefs from storage/server:", e);
         if (isMounted) {
           setDietary([]);
           setAllergies('');
           setPrefsLoading(false);
+           await AsyncStorage.setItem('diet', JSON.stringify([]));
+           await AsyncStorage.setItem('allergies', '');
         }
       }
     })();
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    return () => { isMounted = false; };
+  }, [params.ingredients, setContextIngredients, router, BACKEND_URL]);
 
-  // ========== 2) params.ingredients 또는 AsyncStorage에서 재료 세팅 ==========
-  useEffect(() => {
-    // params.ingredients 우선 사용, 없으면 AsyncStorage에서 가져오기
-    const loadIngredients = async () => {
-      let ing = (params.ingredients as string) ?? '';
-      if (!ing) {
-        ing = (await AsyncStorage.getItem('ingredients')) ?? '';
-      }
-      setIngredients(ing);
-    };
-    loadIngredients();
-  }, [params.ingredients]);
-
-  // ========== 3) 일반 레시피 검색 ==========
   const fetchRecipes = async () => {
-    if (!ingredients.trim()) {
+    if (contextIngredients.length === 0) {
       Alert.alert('입력 오류', '재료를 입력해주세요.');
       return;
     }
     setLoading(true);
     setShowMatch(false);
 
+    setRecipes([]);
+    setMatchRecipes([]);
+
     try {
       const requestBody = {
-        ingredients: ingredients.split(',').map((i) => i.trim()),
+        ingredients: contextIngredients,
         allergies,
-        cuisine: selectedCuisine,
+        cuisine: country,
         dietary:
             dietary.length > 0
               ? dietary.map((d) => d.apiValue).join(',')
@@ -204,28 +224,35 @@ export default function FunctionScreen() {
       if (data.error) throw new Error(data.error);
 
       setRecipes(data);
+
     } catch (e: any) {
       Alert.alert('에러', e.message);
+      setRecipes([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ========== 4) 매칭률 기반 레시피 검색 ==========
   const fetchMatchRecipes = async () => {
-    if (!ingredients.trim()) {
+    if (contextIngredients.length === 0) {
       Alert.alert('입력 오류', '재료를 입력해주세요.');
       return;
     }
     setLoading(true);
     setShowMatch(true);
 
+    setRecipes([]);
+    setMatchRecipes([]);
+
     try {
       const requestBody = {
-        ingredients: ingredients.split(',').map((i) => i.trim()),
+        ingredients: contextIngredients,
         allergies,
-        cuisine: selectedCuisine,
-        dietary: dietary.length > 0 ? dietary[0].apiValue : null,
+        cuisine: country,
+        dietary:
+            dietary.length > 0
+              ? dietary.map((d) => d.apiValue).join(',')
+              : null,
       };
 
       const res = await fetch(`${BACKEND_URL}/get_recipes_by_percent/`, {
@@ -243,14 +270,15 @@ export default function FunctionScreen() {
       if (data.error) throw new Error(data.error);
 
       setMatchRecipes(data);
+
     } catch (e: any) {
       Alert.alert('에러', e.message);
+      setMatchRecipes([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ========== 5) 퍼센트 색상 결정 함수 ==========
   const getColor = (percent: string) => {
     const val = parseInt(percent);
     if (val >= 100) return '#34A853';
@@ -259,7 +287,6 @@ export default function FunctionScreen() {
     return '#EA4335';
   };
 
-  // 로딩 중이면 간단히 로딩 스피너만 보여줌
   if (prefsLoading) {
     return (
       <View style={styles.center}>
@@ -272,23 +299,15 @@ export default function FunctionScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* 뒤로가기 버튼 */}
         <TouchableOpacity onPress={() => router.push('/ingredient')}>
           <Ionicons name="chevron-back" size={28} color="#5B2C20" />
         </TouchableOpacity>
 
-        {/* 타이틀 */}
         <Text style={styles.title}>🍽️ 레시피 추천기</Text>
 
-        {/* 선택된 재료 / 식단 / 알레르기 정보 영역 */}
-        {ingredients ? (
+        {contextIngredients.length > 0 ? (
           <Text style={styles.label}>
-            재료: <Text style={styles.highlight}>{ingredients}</Text>
-          </Text>
-        ) : null}
-        {selectedCuisine ? (
-          <Text style={styles.label}>
-            나라: <Text style={styles.highlight}>{selectedCuisine}</Text>
+            재료: <Text style={styles.highlight}>{contextIngredients.join(', ')}</Text>
           </Text>
         ) : null}
         {dietary.length > 0 ? (
@@ -301,13 +320,18 @@ export default function FunctionScreen() {
             알레르기: <Text style={styles.highlight}>{allergies}</Text>
           </Text>
         ) : null}
+        {country ? (
+          <Text style={styles.label}>
+            나라: <Text style={styles.highlight}>
+              {cuisineList.find(item => item.value === country)?.label || country}
+            </Text>
+          </Text>
+        ) : null}
 
-        {/* 나라 선택 버튼 */}
         <TouchableOpacity style={styles.button} onPress={() => setShowPicker(true)}>
           <Text style={styles.buttonText}>나라 선택</Text>
         </TouchableOpacity>
 
-        {/* 레시피 조회 버튼 */}
         <TouchableOpacity style={styles.recommendBtn} onPress={fetchRecipes}>
           <Text style={styles.recommendText}>일반 레시피 찾기</Text>
         </TouchableOpacity>
@@ -316,10 +340,8 @@ export default function FunctionScreen() {
           <Text style={styles.recommendText}>매칭률 기반 추천</Text>
         </TouchableOpacity>
 
-        {/* 로딩 스피너 */}
         {loading && <ActivityIndicator size="large" color="#DC4F06" style={{ marginTop: 20 }} />}
 
-        {/* 일반 레시피 카드 리스트 */}
         {!loading && !showMatch && recipes.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📖 추천 레시피</Text>
@@ -332,13 +354,13 @@ export default function FunctionScreen() {
                     pathname: '/recipe/[id]',
                     params: {
                       id: r.id.toString(),
-                      ownedIngredients: ingredients, // 이미 상태값으로 있음
+                      ownedIngredients: contextIngredients,
                       routeFrom: 'function',
                     },
                   })
                 }
-                              >
-                <Text style={styles.recipeTitle}>{r.title}</Text>
+              >
+                <Text style={styles.recipeTitle}>{r.title_kr || r.title}</Text>
                 <View style={styles.recipeInfoContainer}>
                   <Text style={styles.recipeInfoText}>⏱ 조리시간: {r.readyInMinutes}분</Text>
                   <Text style={styles.recipeInfoText}>👥 인분: {r.servings}인분</Text>
@@ -352,19 +374,16 @@ export default function FunctionScreen() {
           </View>
         )}
 
-        {/* 매칭률 기반 레시피 카드 리스트 */}
         {!loading && showMatch &&
           Object.entries(matchRecipes).map(
             ([percent, items]) =>
               Array.isArray(items) &&
               items.length > 0 && (
                 <View key={percent} style={styles.section}>
-                  {/* percent가 "<30%"일 때는 “30% 미만 매칭”으로 표시 */}
                   <Text style={styles.sectionTitle}>
                     {percent === "<30%" ? "30% 미만 매칭" : `${percent} 매칭`}
                   </Text>
                   {items.map((r, i) => {
-                    // getColor 함수에 전달할 숫자만 추출 (예: "80%" → "80", "<30%" → "30")
                     const numericPart = percent.replace(/[^0-9]/g, "");
                     return (
                       <TouchableOpacity
@@ -381,13 +400,13 @@ export default function FunctionScreen() {
                             pathname: '/recipe/[id]',
                             params: {
                               id: r.id.toString(),
-                              ownedIngredients: ingredients, // 이미 상태값으로 있음
+                              ownedIngredients: contextIngredients,
                               routeFrom: 'function',
                             },
                           })
                         }
-                                              >
-                        <Text style={styles.recipeTitle}>{r.title}</Text>
+                      >
+                        <Text style={styles.recipeTitle}>{r.title_kr || r.title}</Text>
                         <View style={styles.recipeInfoContainer}>
                           <Text style={styles.recipeInfoText}>
                             ⏱ 조리시간: {r.readyInMinutes}분
@@ -408,17 +427,13 @@ export default function FunctionScreen() {
           )
         }
 
-
-        {/* 결과가 없는 경우 */}
         {!loading && !showMatch && recipes.length === 0 && (
           <Text style={styles.noResults}>아직 레시피가 없어요. 다른 조건으로 검색해보세요!</Text>
         )}
       </ScrollView>
 
-      {/* 하단 탭 바 */}
       <BottomTabBar />
 
-      {/* 나라 선택 모달 */}
       <Modal visible={showPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -430,7 +445,7 @@ export default function FunctionScreen() {
                 <TouchableOpacity
                   style={styles.modalItem}
                   onPress={() => {
-                    setSelectedCuisine(item.value);
+                    setCountry(item.value);
                     setShowPicker(false);
                   }}
                 >
