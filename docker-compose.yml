@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend # backend Dockerfile이 있는 경로
+    ports:
+      - "8000:8000" # 호스트 8000 -> 컨테이너 8000 포트 연결
+    volumes:
+      - ./backend:/app # 소스 코드 변경사항 반영을 위해 볼륨 마운트 (개발 시 유용)
+    environment:
+      - SPOONACULAR_API_KEY=${SPOONACULAR_API_KEY}
+      - DEEPL_API_KEY=${DEEPL_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+
+  frontend:
+    build: ./frontend/taste-trip # frontend Dockerfile이 있는 경로
+    ports:
+      - "19000:19000" # 호스트 19000 -> 컨테이너 19000 포트 연결 (Metro)
+      - "19001:19001" # 호스트 19001 -> 컨테이너 19001 포트 연결 (Metro)
+      - "8081:8081"   # 호스트 8081 -> 컨테이너 8081 포트 연결 (Web)
+    volumes:
+      # 소스 코드 변경사항 반영 및 watchman 이슈 방지를 위해 볼륨 마운트 (개발 시 필수)
+      - ./frontend/taste-trip:/app
+      # Node modules는 컨테이너 내에 설치되도록 별도로 마운트하지 않습니다.
+      - /app/node_modules # node_modules 디렉토리는 호스트와 동기화하지 않도록 빈 볼륨 사용
+    # depends_on: # 필요하다면 백엔드 서비스가 먼저 시작되도록 설정
+    #   - backend
+    environment:
+      #- EXPO_PUBLIC_API_URL=http://backend:8000 # 프론트에서 백엔드에 접근할 때 서비스 이름 사용 
+      - EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
+      - EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}
+      - EXPO_PUBLIC_GOOGLE_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_CLIENT_ID}
+      - EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}
+      - EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}
