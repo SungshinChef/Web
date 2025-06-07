@@ -37,9 +37,12 @@ A personalized recipe recommendation app that helps users discover recipes based
 
 ## 👥 Team Members
 
-<table>
-  
-</table>
+| 프로필 | 이름·역할               | GitHub                             |
+| :----: | ----------------------- | ---------------------------------- |
+| <img src="https://github.com/mintgyumin.png?size=100" width="60" alt="이규민"/> | **이규민**<br>역할 작성 예정              | [@mintgyumin](https://github.com/mintgyumin) |
+| <img src="https://github.com/zangzoo.png?size=100" width="60" alt="장지우"/> | **장지우**<br>역할 작성 예정 | [@zangzoo](https://github.com/zangzoo) |
+| <img src="https://github.com/amycms.png?size=100" width="60" alt="김영희"/> | **조민서**<br>역할 작성 예정               | [@amycms](https://github.com/amycms) |
+
 
 ## 🚀 Getting Started
 
