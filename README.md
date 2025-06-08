@@ -56,18 +56,19 @@ Web/
 ## 🚀 시작하기
 1. 레포지토리 클론
    ```bash
-git clone <repository_url>
-cd Web
-```
+   git clone <repository_url>
+   cd Web
+   ```
 2. 환경 변수 설정
    ```bash
-cp .env.example .env
-# .env에 API 키·DB 정보 입력
-```
+   cp .env.example .env
+   # .env에 Spoonacular 및 DeepL API 키와 DB 정보 입력
+   ```
 3. Docker Compose 실행
    ```bash
-docker-compose up --build
-```
+   docker-compose up --build
+   ```
+
 
 **프론트엔드(Expo)**: 터미널에 표시된 URL(`http://<YOUR_IP>:8081`)로 접속하거나 QR 코드 스캔
 
