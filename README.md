@@ -56,7 +56,7 @@ Web/
 ## 🚀 시작하기
 1. 레포지토리 클론
    ```bash
-   git clone [<repository_url>](https://github.com/SungshinChef/Web)
+   git clone https://github.com/SungshinChef/Web
    cd Web
    ```
 2. 환경 변수 설정
