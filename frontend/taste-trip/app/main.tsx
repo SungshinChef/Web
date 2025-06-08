@@ -16,7 +16,7 @@ export default function Main() {
   const params = useLocalSearchParams();
   const dietary = params.dietary as string;
   const allergies = params.allergies as string;
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
 
   const handleInputPress = () => {
     router.push({
@@ -37,11 +37,11 @@ export default function Main() {
     },
     titleContainer: {
       alignItems: 'center',
-      marginTop: height * 0.08,
-      marginBottom: height * 0.09,
+      marginTop: 30,
+      marginBottom: 20,
     },
     titleSpacing: {
-      height: height * 0.02,
+      height: 10,
     },
     titleLine1: {
       fontSize: Math.min(width * 0.1, 40),
@@ -53,23 +53,26 @@ export default function Main() {
       fontWeight: 'bold',
       color: '#813D2C',
     },
-    fridgeAndButton: {
-      alignItems: 'center',
+    centerContent: {
+      flex: 1,
       justifyContent: 'center',
-      width: width * 0.85,
+      alignItems: 'center',
+      width: '100%',
+      paddingBottom: 40, // 조금만 아래로 내려줌 (원하는 만큼 조절 가능)
     },
     fridgeImage: {
       width: 250,
       height: 250,
-      marginBottom: 0, // 여백 제거
+      marginBottom: 0,
     },
     buttonContainer: {
       width: '100%',
       marginTop: -30,
+      alignItems: 'center',
     },
     inputBox: {
       backgroundColor: '#FFEFD5',
-      width: '100%',
+      width: '85%',
       paddingVertical: 50,
       borderRadius: Math.min(width * 0.05, 20),
       borderWidth: 1,
@@ -95,8 +98,8 @@ export default function Main() {
           <Text style={styles.titleLine2}>요리할까요?</Text>
         </View>
 
-        {/* 냉장고 + 버튼 */}
-        <View style={styles.fridgeAndButton}>
+        {/* 중앙 콘텐츠 */}
+        <View style={styles.centerContent}>
           <Image
             source={require('../assets/main_logo.png')}
             style={styles.fridgeImage}
@@ -111,6 +114,7 @@ export default function Main() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
       <BottomTabBar />
     </View>
   );
