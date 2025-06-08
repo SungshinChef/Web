@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import BottomTabBar from '../components/BottomTabBar';
@@ -23,10 +22,7 @@ export default function Main() {
   const handleInputPress = () => {
     router.push({
       pathname: "/ingredient",
-      params: {
-        dietary: dietary,
-        allergies: allergies
-      }
+      params: { dietary, allergies },
     });
   };
 
@@ -40,22 +36,15 @@ export default function Main() {
           <Text style={styles.titleLine2}>요리할까요?</Text>
         </View>
 
-        {/* 냉장고 이미지와 입력 버튼을 포함하는 컨테이너 */}
-        <View style={styles.mainContentContainer}>
-          <View style={styles.fridgeContainer}>
-            {/* 냉장고 이미지 */}
-            <Image
-              source={require('../assets/main_logo.png')}
-              style={styles.fridgeImage}
-              resizeMode="contain"
-            />
-          </View>
+        {/* 냉장고 + 버튼 */}
+        <View style={styles.fridgeAndButton}>
+          <Image
+            source={require('../assets/main_logo.png')}
+            style={styles.fridgeImage}
+            resizeMode="contain"
+          />
 
-          {/* 입력 버튼 */}
-          <TouchableOpacity 
-            style={styles.buttonContainer}
-            onPress={handleInputPress}
-          >
+          <TouchableOpacity style={styles.buttonContainer} onPress={handleInputPress}>
             <View style={styles.inputBox}>
               <Text style={styles.inputText}>재료를</Text>
               <Text style={styles.inputText}>입력해주세요.</Text>
@@ -96,33 +85,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#813D2C',
   },
-  mainContentContainer: {
-    width: width * 0.85,
-    height: height * 0.5,
+  fridgeAndButton: {
     alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  fridgeContainer: {
-    width: width * 0.85,
-    height: height * 0.35,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFD6A5',
+    width: width * 0.85,
   },
   fridgeImage: {
     width: 250,
     height: 250,
-    resizeMode: 'contain',
+    marginBottom: 0, // 여백 제거
   },
   buttonContainer: {
     width: '100%',
-    height: '25%',
-    marginTop: Math.min(-height * 0.02, -15),
+    marginTop: -30,
   },
   inputBox: {
     backgroundColor: '#FFEFD5',
     width: '100%',
-    height: Math.min(height * 0.16, 160),
+    paddingVertical: 20,
     borderRadius: Math.min(width * 0.05, 20),
     borderWidth: 1,
     borderColor: '#B88655',
