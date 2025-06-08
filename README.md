@@ -32,8 +32,8 @@ Web/
   - 식단 선호 및 알레르기 관리, 즐겨찾기·실시간 동기화
 
 ## 🛠 기술 스택
-- **Frontend:** React Native(Expo), TypeScript, React Navigation, Docker
-- **Backend:** FastAPI, Python, Spoonacular API, DeepL API, Docker
+- **Frontend:** React Native(Expo), TypeScript
+- **Backend:** FastAPI, Python, Spoonacular API, DeepL API
 - **Deployment:** Docker Compose
 
 ## 👥 팀원 소개
