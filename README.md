@@ -33,8 +33,11 @@ Web/
 
 ## 🛠 기술 스택
 - **Frontend:** React Native(Expo), TypeScript
-- **Backend:** FastAPI, Python, Spoonacular API, DeepL API
+- **Backend:** FastAPI, Python
 - **Deployment:** Docker Compose
+
+## 📚 API 문서
+- 백엔드의 상세 엔드포인트 및 사용 예시는 `backend/API_GUIDE.md`에서 확인 가능합니다.
 
 ## 👥 팀원 소개
 | 프로필 | 이름·역할         | GitHub                               |
