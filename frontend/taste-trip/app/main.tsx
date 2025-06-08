@@ -37,8 +37,8 @@ export default function Main() {
     },
     titleContainer: {
       alignItems: 'center',
-      marginTop: 30,
-      marginBottom: 20,
+      marginTop: 70,
+      marginBottom: -50,
     },
     titleSpacing: {
       height: 10,
