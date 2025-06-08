@@ -145,15 +145,27 @@ export default function TestScreen() {
       .filter(([_, v]) => v.checked)
       .map(([k, v]) => ({ name: k, apiValue: v.apiValue }));
     const selectedAllergies = [
-      ...Object.entries(allergyItems).filter(([_, v]) => v).map(([k]) => k),
+      ...Object.entries(allergyItems)
+        .filter(([_, v]) => v)
+        .map(([k]) => k),
       ...customAllergies
     ];
+  
     const userJson = await AsyncStorage.getItem('user');
     const user = userJson ? JSON.parse(userJson) : null;
     const token = await AsyncStorage.getItem('idToken');
     if (!user || !token) {
       return Alert.alert('Error', '로그인 정보가 없습니다.');
     }
+  
+    // ❶ LocalStorage(AsyncStorage)에 식단·알레르기 저장
+    try {
+      await AsyncStorage.setItem('diet', JSON.stringify(selectedDietary));
+      await AsyncStorage.setItem('allergies', selectedAllergies.join(','));
+    } catch (e) {
+      console.warn('AsyncStorage에 선호도 저장 실패:', e);
+    }
+  
     const method = actualMode === 'edit' ? 'PUT' : 'POST';
     const res = await fetch(
       `${BACKEND_URL}/api/preferences/${user.id}`,
@@ -166,10 +178,10 @@ export default function TestScreen() {
         body: JSON.stringify({
           diet: JSON.stringify(selectedDietary),
           allergies: selectedAllergies.join(',')
-    })
-  }
-);
-
+        })
+      }
+    );
+  
     if (!res.ok) {
       const err = await res.json();
       return Alert.alert('Error', err.detail || 'Preferences 저장에 실패했습니다.');
@@ -181,6 +193,7 @@ export default function TestScreen() {
       router.push('/main');
     }
   };
+  
 
   const handleAddAllergy = () => {
     const trimmedAllergy = newAllergy.trim();

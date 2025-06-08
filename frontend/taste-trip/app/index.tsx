@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import SplashScreen from '../screens/SplashScreen';
 
@@ -9,7 +9,7 @@ export default function Index() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace('/login');
-    }, 2000); // 2초 뒤 로그인 화면으로 이동
+    }, 2000); // 2초 뒤 로그인 화면 이동동
 
     return () => clearTimeout(timer);
   }, []);
@@ -17,7 +17,6 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <SplashScreen />
-      <ActivityIndicator size="large" color="#000" style={{ marginTop: 20 }} />
     </View>
   );
 }
@@ -25,5 +24,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFD6A5', // 배경색도 한 번 더 확실히 지정
   },
 });

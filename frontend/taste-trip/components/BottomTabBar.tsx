@@ -5,6 +5,7 @@ import {
   Image,
   StyleSheet,
   Platform,
+  Text
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,13 @@ export default function BottomTabBar() {
     ];
   };
 
+  const getTextStyle = (route: string) => {
+    return [
+      styles.tabText,
+      pathname === route ? { color: '#DC4F06' } : { color: '#5B2C20' }
+    ];
+  };
+
   return (
     <View style={[styles.tabBar, { elevation: 5 }]}>
       <View style={styles.tabBorder} />
@@ -35,6 +43,7 @@ export default function BottomTabBar() {
           source={require('../assets/recommend_logo.png')} 
           style={getIconStyle('/main')}  
         />
+        <Text style={getTextStyle('/main')}> 레시피 추천</Text>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.tabButton} 
@@ -44,6 +53,7 @@ export default function BottomTabBar() {
           source={require('../assets/favorite_logo.png')}
           style={getIconStyle('/favorite')} 
         />
+        <Text style={getTextStyle('/favorite')}> 즐겨찾기</Text>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.tabButton} 
@@ -53,6 +63,7 @@ export default function BottomTabBar() {
           source={require('../assets/user_info_logo.png')} 
           style={getIconStyle('/myinfo')} 
         />
+        <Text style={getTextStyle('/myinfo')}> 마이페이지</Text>
       </TouchableOpacity>
     </View>
   );
@@ -86,6 +97,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 5,
   },
   tabBorder: {
     position: 'absolute',
@@ -98,4 +110,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
   },
+  tabText: {
+    fontSize: 10,
+    marginTop: 2,
+    fontWeight: 'bold',
+  }
 });
