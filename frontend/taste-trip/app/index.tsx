@@ -9,7 +9,7 @@ export default function Index() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace('/login');
-    }, 2000); // 2초 뒤 로그인 화면으로 이동
+    }, 2000); // 2초 뒤 로그인 화면 이동동
 
     return () => clearTimeout(timer);
   }, []);
