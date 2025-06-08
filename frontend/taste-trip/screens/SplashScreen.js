@@ -1,4 +1,4 @@
-import React from 'react';
+ import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 
 export default function SplashScreen() {
@@ -22,6 +22,6 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 200,
-    height: 200,
+    height: 200, 
   },
-});
+}); 
