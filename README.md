@@ -61,27 +61,10 @@ Web/
    ```
 2. 환경 변수 설정
    - 프로젝트 루트 디렉토리(`Web/` 내 `docker-compose.yml` 파일이 있는 곳)에 `.env` 파일을 생성해야 합니다.
-   - `.env.example` 파일을 복사하여 `.env` 파일을 만들고, 아래 필수 환경 변수들을 채워 넣으세요.
+   - `.env.example` 파일을 복사하여 `.env` 파일을 만들고, 필수 환경 변수들을 채워 넣으세요.
 
    ```bash
    cp .env.example .env
-   ```
-
-   **필수 환경 변수:**
-   ```
-   # Backend (backend/.env.example 또는 main.py에서 확인)
-   SPOONACULAR_API_KEY=<당신의 Spoonacular API 키>
-   DEEPL_API_KEY=<당신의 DeepL API 키>
-   SUPABASE_URL=<당신의 Supabase 프로젝트 URL>
-   SUPABASE_KEY=<당신의 Supabase 프로젝트 API 키 (Anon Key)>
-   GOOGLE_CLIENT_ID=<당신의 Google OAuth 웹 클라이언트 ID>
-   DATABASE_URL=<당신의 PostgreSQL 데이터베이스 연결 URL (예: postgresql://user:password@host:port/dbname)>
-
-   # Frontend (frontend/taste-trip/app.json 또는 login.tsx에서 확인)
-   # Expo public 환경 변수는 EXPO_PUBLIC_ 접두사를 사용합니다.
-   EXPO_PUBLIC_GOOGLE_CLIENT_ID=<당신의 Google OAuth 웹 클라이언트 ID (frontend용)>
-   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<당신의 Google OAuth iOS 클라이언트 ID>
-   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<당신의 Google OAuth Android 클라이언트 ID>
    ```
 
    **⚠️ 중요**: `.env` 파일은 민감한 정보를 포함하므로, Git 저장소에 커밋되지 않도록 `.gitignore` 파일을 확인하세요.
@@ -90,7 +73,7 @@ Web/
    docker-compose up --build
    ```
 
-   **프론트엔드(Expo) 접속 방법:** 터미널에 표시된 URL(`http://<YOUR_IP>:8081` 또는 `http://localhost:19000`)로 접속하거나 Expo Go 앱을 통해 QR 코드를 스캔하여 모바일 기기에서 접속할 수 있습니다. (모바일 기기에서 접속 시, 백엔드 URL이 `localhost`가 아닌 현재 PC의 로컬 IP 주소로 설정되어 있는지 확인해주세요.)
+   **프론트엔드(Expo) 접속 방법:** 터미널에 표시된 URL(`http://localhost:8081` 또는 `http://localhost:19000`)로 접속하거나 Expo Go 앱을 통해 QR 코드를 스캔하여 모바일 기기에서 접속할 수 있습니다. (모바일 기기에서 접속 시, 백엔드 URL이 `localhost`가 아닌 현재 PC의 로컬 IP 주소로 설정되어 있는지 확인해주세요.)
 
 ## 📱 스크린샷
 - 추후 추가 예정
