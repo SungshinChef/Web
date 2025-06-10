@@ -40,20 +40,15 @@ Web/
    - 식단 선호(비건·채식·글루텐 프리·케토제닉) 관리
    - 알레르기 유발 재료 제외
    - 즐겨찾기 목록 및 실시간 동기화
-  
+
 ---
 
-## 🛠 기술 스택
-- **Frontend:**
-  - React Native(Expo)
-  - TypeScript
-
-- **Backend:**
-  - FastAPI
-  - Python
-    
-- **Deployment:**
-  - Docker
+## 🛠️ 기술 스택
+| 분야        | 기술                                 |
+|-----------|------------------------------------|
+| Frontend  | React Native, Expo, TypeScript     |
+| Backend   | Python, FastAPI |
+| Deployment| Docker              |
 
 ---
 
