@@ -384,90 +384,19 @@ async def get_recipes(request: IngredientsRequest):
 # ✅ 퍼센트 기반 레시피 추천 API 비동기화
 @app.post("/get_recipes_by_percent/")
 async def get_recipes_by_percent(request: IngredientsRequest):
-    ingredients = request.ingredients
-    allergies_list = [a.strip() for a in request.allergies.split(",")] if request.allergies else []
-    cuisine = request.cuisine
-    dietary = request.dietary
+    # 1. 사용자 입력 재료를 영어로 번역
+    translated_ingredients_tasks = [translate_with_deepl_async(i, target_lang="EN") for i in request.ingredients]
+    translated_ingredients = await asyncio.gather(*translated_ingredients_tasks)
+    user_ingredients_en = set([i.strip().lower() for i in translated_ingredients])
 
-    # 먼저 기본 레시피 검색 (비동기)
-    recipes = await get_recipes_by_ingredients_async(ingredients) # await 추가
-    filtered_recipes = []
+    # 2. 일반 레시피 추천 결과 가져오기 (영어 extendedIngredients 포함)
+    recipes = await get_recipes_complex_async(
+        ingredients=request.ingredients,
+        allergies=request.allergies,
+        cuisine=request.cuisine,
+        diet=request.dietary
+    )
 
-    # 레시피 상세 정보 가져오기 및 필터링, 매칭률 계산 (비동기 병렬 처리)
-    async def process_and_filter_recipe(recipe):
-        recipe_detail = await get_recipe_detail_async(recipe['id']) # await 추가
-        if not isinstance(recipe_detail, dict) or recipe_detail.get('error'):
-            return None # 처리 실패 또는 에러 발생 시 건너뛰기
-
-        # 알레르기 필터링 (대소문자 구분 없이 검사, 한국어 재료명 사용)
-        if allergies_list:
-            recipe_ingredients = recipe_detail.get("ingredients", []) # 이미 한국어로 번역된 재료
-            recipe_ingredients_text = " ".join(recipe_ingredients).lower()
-            # 알레르기 항목도 한국어로 소문자 변환하여 비교
-            translated_allergies_lower = [a.lower() for a in allergies_list]
-            if any(allergen_lower in recipe_ingredients_text for allergen_lower in translated_allergies_lower):
-                return None # 알레르기 재료 포함 시 제외
-
-        # 식단 필터링 (Spoonacular 결과 사용 또는 상세 정보에서 확인)
-        # get_recipe_detail_async에 boolean 필드 추가 필요 (vegan, vegetarian 등)
-        # 현재 코드 구조상 상세 정보에서만 확인 가능
-        if dietary:
-             is_vegetarian = recipe_detail.get("vegetarian", False) # 상세 정보에 필드 추가 가정
-             is_vegan = recipe_detail.get("vegan", False) # 상세 정보에 필드 추가 가정
-             is_gluten_free = recipe_detail.get("gluten free", False) # 상세 정보에 필드 추가 가정
-             is_ketogenic = recipe_detail.get("ketogenic", False) # 상세 정보에 필드 추가 가정
-
-             dietary_list = [d.strip().lower() for d in dietary.split(",")]
-             for diet_opt in dietary_list:
-                 if diet_opt == "vegetarian" and not is_vegetarian:
-                     return None
-                 if diet_opt == "vegan" and not is_vegan:
-                     return None
-                 if diet_opt == "gluten free" and not is_gluten_free:
-                     return None
-                 if diet_opt == "ketogenic" and not is_ketogenic:
-                     return None
-
-        # 나라별 요리 필터링 (Spoonacular 상세 정보의 cuisines 필드 사용)
-        if cuisine:
-             recipe_cuisines = recipe_detail.get("cuisines", []) # 상세 정보에 필드 추가 가정
-             if cuisine not in recipe_cuisines:
-                  return None
-
-
-        # 필터링을 통과한 레시피 정보 업데이트
-        # 상세 정보에서 이미 번역된 필드를 가져옴
-        updated_recipe = recipe.copy() # 원본 레시피 정보 복사
-        updated_recipe.update({
-            "title_kr": recipe_detail.get("title_kr", recipe["title"]), # 번역된 제목 사용, 없으면 원본
-            "readyInMinutes": recipe_detail.get("readyInMinutes", 0),
-            "servings": recipe_detail.get("servings", 0),
-            "instructions": recipe_detail.get("instructions", ""),
-            "ingredients": recipe_detail.get("ingredients", []), # 번역된 재료 사용
-            "spoonacular_url": f"https://spoonacular.com/recipes/{recipe['title'].replace(' ', '-')}-{recipe['id']}" # 원본 제목 사용
-        })
-
-        # 매칭률 계산
-        used = updated_recipe.get("usedIngredientCount", 0)
-        missed = updated_recipe.get("missedIngredientCount", 0)
-        total = used + missed
-        match_score = used / total if total > 0 else 0
-        updated_recipe["match_score"] = match_score
-        updated_recipe["match_percentage"] = f"{int(match_score * 100)}%"
-
-        return updated_recipe
-
-    # 모든 레시피에 대해 비동기 병렬 처리 및 필터링
-    processed_tasks = [process_and_filter_recipe(recipe) for recipe in recipes]
-    processed_results = await asyncio.gather(*processed_tasks)
-
-    # 유효한 결과만 필터링
-    filtered_recipes = [result for result in processed_results if result is not None]
-
-    # 매칭률로 정렬
-    filtered_recipes.sort(key=lambda x: x.get("match_score", 0), reverse=True)
-
-    # 카테고리별 분류 및 결과 제한
     categorized_recipes = {
         "100%": [],
         "80%": [],
@@ -476,9 +405,19 @@ async def get_recipes_by_percent(request: IngredientsRequest):
         "<30%": []
     }
 
-    for recipe in filtered_recipes:
-        match_score = recipe.get("match_score", 0)
-        category = None
+    for recipe in recipes:
+        # 레시피의 사용된 재료(영어)
+        recipe_ingredients_en = set(
+            [ing.get("name", "").strip().lower() for ing in recipe.get("extendedIngredients", []) if ing.get("name")]
+        )
+        if not recipe_ingredients_en or not user_ingredients_en:
+            continue
+
+        matched = len(recipe_ingredients_en & user_ingredients_en)
+        total = len(user_ingredients_en)
+        match_score = matched / total if total > 0 else 0
+
+        # 카테고리 분류
         if match_score >= 1.0:
             category = "100%"
         elif match_score >= 0.8:
@@ -490,8 +429,8 @@ async def get_recipes_by_percent(request: IngredientsRequest):
         else:
             category = "<30%"
 
-        if category and len(categorized_recipes[category]) < 5:
-            del recipe["match_score"]  # 임시로 사용한 match_score 제거
+        recipe["match_percentage"] = f"{int(match_score * 100)}%"
+        if len(categorized_recipes[category]) < 5:
             categorized_recipes[category].append(recipe)
 
     return categorized_recipes

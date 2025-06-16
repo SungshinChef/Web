@@ -281,10 +281,11 @@ export default function FunctionScreen() {
 
   const getColor = (percent: string) => {
     const val = parseInt(percent);
-    if (val >= 100) return '#34A853';
-    if (val >= 80) return '#FBBC05';
-    if (val >= 50) return '#F39C12';
-    return '#EA4335';
+    if (val >= 100) return '#1976D2';      // 파랑
+    if (val >= 80)  return '#34A853';      // 초록
+    if (val >= 50)  return '#FBBC05';      // 노랑
+    if (val >= 30)  return '#F39C12';      // 주황
+    return '#EA4335';                      // 빨강
   };
 
   if (prefsLoading) {
@@ -384,7 +385,7 @@ export default function FunctionScreen() {
                     {percent === "<30%" ? "30% 미만 매칭" : `${percent} 매칭`}
                   </Text>
                   {items.map((r, i) => {
-                    const numericPart = percent.replace(/[^0-9]/g, "");
+                    const numericPart = r.match_percentage.replace(/[^0-9]/g, "");
                     return (
                       <TouchableOpacity
                         key={i}
