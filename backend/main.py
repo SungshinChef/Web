@@ -634,3 +634,5 @@ async def get_multiple_recipe_details(recipe_ids: List[int]):
         results.append(recipe_data)
 
     return JSONResponse(content=results)
+
+print("SPOONACULAR_API_KEY:", os.getenv("SPOONACULAR_API_KEY"))

@@ -140,30 +140,38 @@ export default function RecipeDetailScreen() {
 
   
   const toggleFavorite = async () => {
-    if (!userId) return;
+    if (!userId || !id) return;
 
-  try {
-    if (isFavorite) {
-      const { error } = await supabase
-        .from('favorites')
-        .delete()
-        .eq('user_id', userId)
-        .eq('recipe_id', Number(id));
+    try {
+      if (isFavorite) {
+        // 즐겨찾기 삭제
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', userId)
+          .eq('recipe_id', Number(id));
 
-      if (error) throw error;
-      setIsFavorite(false);
-    } else {
-      const { error } = await supabase
-        .from('favorites')
-        .insert([{ user_id: userId, recipe_id: Number(id) }]);
+        if (error) throw error;
+        setIsFavorite(false);
+      } else {
+        // 즐겨찾기 추가
+        const { error } = await supabase
+          .from('favorites')
+          .insert([{ 
+            user_id: userId, 
+            recipe_id: Number(id),
+            //recipe_title: recipe?.title ?? '',  // 레시피 제목 추가
+            //recipe_image: recipe?.image ?? ''   // 레시피 이미지 추가
+          }]);
 
-      if (error) throw error;
-      setIsFavorite(true);
+        if (error) throw error;
+        setIsFavorite(true);
+      }
+    } catch (err) {
+      alert('즐겨찾기 처리 중 오류가 발생했습니다. 다시 시도해 주세요.'); // 알림 메시지 수정
+      console.error('Supabase 즐겨찾기 토글 실패:', err);
     }
-  } catch (err) {
-    console.error('Supabase 즐겨찾기 토글 실패:', err);
-  }
-};
+  };
 
   // --- 재료 번역 및 정렬 함수 ---
   const translateAndSortIngredients = async (ingredientsList: string[], ownedIngs: string[]) => {

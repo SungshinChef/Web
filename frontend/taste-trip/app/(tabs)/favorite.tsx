@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,20 +34,29 @@ export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const router = useRouter();
   const { userId } = useAuth();
+  const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       const loadFavorites = async () => {
         try {
-          if (!userId) return;
+          setLoading(true);
+          if (!userId) {
+            setFavorites([]);
+            return;
+          }
+
+          console.log('userId:', userId, typeof userId, userId.length);
 
           const { data: favoriteRows, error } = await supabase
             .from('favorites')
             .select('recipe_id')
-            .eq('user_id', userId);
+            .eq('user_id', String(userId).trim());
 
-          if (error) throw error;
-          const recipeIds = favoriteRows.map((row) => row.recipe_id);
+          console.log('favoriteRows:', favoriteRows, 'error:', error);
+
+          const recipeIds = favoriteRows ? favoriteRows.map((row) => row.recipe_id) : [];
+          console.log('recipeIds:', recipeIds);
 
           if (recipeIds.length === 0) {
             setFavorites([]);
@@ -63,6 +74,8 @@ export default function FavoritesScreen() {
           setFavorites(detailedRecipes);
         } catch (err) {
           console.error('❌ 즐겨찾기 불러오기 실패:', err);
+        } finally {
+          setLoading(false);
         }
       };
 
@@ -91,37 +104,44 @@ export default function FavoritesScreen() {
         <Text style={styles.header}>즐겨찾기</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
-        {favorites.length === 0 ? (
-          <Text style={styles.noFavorites}>
-            아직 레시피가 없습니다.{"\n"}마음에 드는 레시피를 저장해 보세요!
-          </Text>
-        ) : (
-          favorites.map((recipe, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.recipeRow}
-              onPress={() => goToRecipeDetail(recipe)}
-            >
-              {/* ✅ 동그라미 번호 */}
-              <View style={styles.circleNumber}>
-                <Text style={styles.circleNumberText}>{index + 1}</Text>
-              </View>
-
-              {/* 레시피 카드 */}
-              <View style={styles.recipeItem}>
-                <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-                <View style={styles.recipeText}>
-                  <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                  {recipe.title_kr && (
-                    <Text style={styles.recipeTitleKr}>{recipe.title_kr}</Text>
-                  )}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5B2C20" />
+          <Text style={styles.loadingText}>로딩중...</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={true}>
+          {favorites.length === 0 ? (
+            <Text style={styles.noFavorites}>
+              아직 레시피가 없습니다.{"\n"}마음에 드는 레시피를 저장해 보세요!
+            </Text>
+          ) : (
+            favorites.map((recipe, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.recipeRow}
+                onPress={() => goToRecipeDetail(recipe)}
+              >
+                {/* ✅ 동그라미 번호 */}
+                <View style={styles.circleNumber}>
+                  <Text style={styles.circleNumberText}>{index + 1}</Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+
+                {/* 레시피 카드 */}
+                <View style={styles.recipeItem}>
+                  <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                  <View style={styles.recipeText}>
+                    <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                    {recipe.title_kr && (
+                      <Text style={styles.recipeTitleKr}>{recipe.title_kr}</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -207,5 +227,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#5B2C20',
     marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFD6A5',
+    position: 'absolute',
+    top: Dimensions.get('window').height * 0.4,
+    left: 0,
+    right: 0,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#5B2C20',
+    fontSize: 16,
   },
 });
