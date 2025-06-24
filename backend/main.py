@@ -387,7 +387,9 @@ async def get_recipes_by_percent(request: IngredientsRequest):
     # 1. 사용자 입력 재료를 영어로 번역
     translated_ingredients_tasks = [translate_with_deepl_async(i, target_lang="EN") for i in request.ingredients]
     translated_ingredients = await asyncio.gather(*translated_ingredients_tasks)
-    user_ingredients_en = set([i.strip().lower() for i in translated_ingredients])
+    user_ingredients_en = set([i.strip().lower() for i in translated_ingredients if i.strip()]) # 빈 문자열 제거 및 소문자/집합화
+
+    print(f"[DEBUG] 사용자 입력 재료 (번역 후): {user_ingredients_en}")
 
     # 2. 일반 레시피 추천 결과 가져오기 (영어 extendedIngredients 포함)
     recipes = await get_recipes_complex_async(
@@ -410,12 +412,30 @@ async def get_recipes_by_percent(request: IngredientsRequest):
         recipe_ingredients_en = set(
             [ing.get("name", "").strip().lower() for ing in recipe.get("extendedIngredients", []) if ing.get("name")]
         )
+        print(f"[DEBUG] 레시피 ID: {recipe.get('id')}, 레시피 제목: {recipe.get('title')}, 추출된 재료: {recipe_ingredients_en}")
+
         if not recipe_ingredients_en or not user_ingredients_en:
+            print(f"[DEBUG] 매칭 불가: 레시피 재료 또는 사용자 재료 없음 (ID: {recipe.get('id')})")
             continue
 
-        matched = len(recipe_ingredients_en & user_ingredients_en)
-        total = len(user_ingredients_en)
+        matched_count = 0
+        matched_ingredients_list = [] # 매칭된 재료 확인용 리스트
+        for user_ing in user_ingredients_en:
+            is_matched_for_user_ing = False
+            for recipe_ing in recipe_ingredients_en:
+                # 단어 안에 포함만 되어도 매칭으로 인식
+                if user_ing in recipe_ing or recipe_ing in user_ing:
+                    is_matched_for_user_ing = True
+                    matched_ingredients_list.append(user_ing) # 매칭된 재료 추가
+                    break
+            if is_matched_for_user_ing:
+                matched_count += 1
+        matched = matched_count
+
+        total = len(recipe_ingredients_en) # 추천 레시피의 재료 개수를 분모로 사용 (이전 변경 유지)
         match_score = matched / total if total > 0 else 0
+        
+        print(f"[DEBUG] 레시피 ID: {recipe.get('id')}, 매칭된 재료: {matched_ingredients_list}, 일치 개수: {matched}, 총 레시피 재료 개수: {total}, 매칭 점수: {match_score:.2f}")
 
         # 카테고리 분류
         if match_score >= 1.0:
