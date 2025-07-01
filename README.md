@@ -100,7 +100,42 @@ Web/
    **프론트엔드(Expo) 접속 방법:** 터미널에 표시된 URL(`http://localhost:8081` 또는 `http://localhost:19000`)로 접속하거나, Expo Go 앱을 통해 QR 코드 스캔
 
 ## 📱 스크린샷
-- 추후 추가 예정
+
+### 1. Splash & Authentication
+| <img src="https://github.com/user-attachments/assets/50505cd2-6865-43c8-89f0-3e5018cb71f0" alt="01_splash" height="400" /> | <img src="https://github.com/user-attachments/assets/dc8a6268-9490-4e3b-99f2-6112b5fcc1d8" alt="02_login" height="400" /> |
+|:-:|:-:|
+| **Splash Screen**<br/>앱 로고를 보여주는 첫 화면 | **Login with Google**<br/>구글 OAuth 로그인 화면 |
+
+### 2. Onboarding & Preferences
+| <img src="https://github.com/user-attachments/assets/328742cf-cdf3-4d02-ad6b-33416ecf5cb7" alt="03_welcome" height="400" /> | <img src="https://github.com/user-attachments/assets/dbed00b3-7793-4751-a010-015f12486ae2" alt="04_preferences" height="400" /> |
+|:-:|:-:|
+| **레시피 기본 설정**<br/>식단·알레르기 선택 화면 | **무엇을 요리할까요?**<br/>재료 입력 안내 |
+
+### 3. 재료 입력 & 나라 선택
+| <img src="https://github.com/user-attachments/assets/a564f2f8-4beb-4327-949b-4cb56e10178d" alt="05_ingredient_input" height="400" /> | <img src="https://github.com/user-attachments/assets/3d0db0dc-cd25-48d7-ab30-8289b657cd76" alt="06_empty_state" height="400" /> | <img src="https://github.com/user-attachments/assets/c6599afa-c8ac-4e98-a3a6-794232352c9b" alt="07_country_selection" height="400" /> |
+|:-:|:-:|:-:|
+| **재료 입력하기**<br/>타입하거나 쉼표로 재료 추가 | **추천 초기 화면**<br/>추천받기 전 상태 | **나라 선택하기**<br/>총 27개국 중 원하는 나라 선택 |  |
+
+### 4. 레시피 검색 결과
+| <img src="https://github.com/user-attachments/assets/0dc40598-fefb-4aeb-9389-c99989531e92" alt="11_general_results" height="400" /> | <img src="https://github.com/user-attachments/assets/d260f826-ee06-49f2-b146-47909231738c" alt="12_match_results" height="400" /> |
+|:-:|:-:|
+| **일반 레시피 추천**<br/>검색된 레시피 리스트 | **매칭률 기반 추천**<br/>100%, 80%, … 30% 미만 카테고리 |
+
+### 5. 레시피 상세 & 즐겨찾기 토글
+| <img src="https://github.com/user-attachments/assets/7cd6e57f-661a-4f61-a6a5-18feae68a6c5" alt="15_detail_star_on" height="400" /> | <img src="https://github.com/user-attachments/assets/9a6f974a-3051-4ffe-a8a9-e3f018c22811" alt="16_detail_star_off" height="400" /> |
+|:-:|:-:|
+| **즐겨찾기 ON**<br/>별표 클릭 시 채워진 상태 | **즐겨찾기 OFF**<br/>별표 클릭 해제 시 비워진 상태 |
+
+### 6. 레시피 상세 스크롤
+| <img src="https://github.com/user-attachments/assets/d76a6054-b2a3-4c83-8e12-a3f057c0ce8f" alt="17_detail_scroll_ingredients" height="400" /> | <img src="https://github.com/user-attachments/assets/b69038b5-68a4-40a8-a62e-5c18fdd2ba89" alt="18_detail_scroll_steps" height="400" /> |
+|:-:|:-:|
+| **필요한 재료**<br/>스크롤로 보는 재료 목록과 대체재 제공 | **만드는 법**<br/>스크롤로 보는 단계별 조리법 |
+
+### 7. 즐겨찾기 & 마이페이지
+| <img src="https://github.com/user-attachments/assets/df35ac71-16e2-4541-923d-37c0ff0d13e9" alt="13_profile" height="400" /> | <img src="https://github.com/user-attachments/assets/82fab1ab-7758-4627-948c-358d6aab8133" alt="14_favorites" height="400" /> |
+|:-:|:-:|
+| **마이페이지**<br/>로그인한 사용자 정보, 식단·알레르기 수정, 로그아웃 | **즐겨찾기 리스트**<br/>찜한 레시피 모아보기 |
+
 
 ## 📝 라이선스
 - MIT 라이선스
